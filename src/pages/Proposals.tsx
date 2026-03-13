@@ -51,9 +51,9 @@ const TALK_THEMES = [
 ];
 
 const FORMATS = [
-  { id: 'palestra', label: 'Palestra', duration: '60 min', price: 30000 },
-  { id: 'keynote', label: 'Keynote', duration: '45 min', price: 25000 },
-  { id: 'workshop', label: 'Workshop Executivo', duration: '2h', price: 18000 },
+  { id: 'palestra', label: 'Palestra', duration: '60 min', price: 10000 },
+  { id: 'keynote', label: 'Keynote', duration: '45 min', price: 10000 },
+  { id: 'workshop', label: 'Workshop Executivo', duration: '2h', price: 20000 },
   { id: 'programa', label: 'Programa de Desenvolvimento', duration: '4 módulos', price: 35000 },
 ];
 
