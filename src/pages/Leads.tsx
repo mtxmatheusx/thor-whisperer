@@ -42,6 +42,10 @@ export default function LeadsPage() {
   const openCreate = () => { setEditingLead(null); setDialogOpen(true); };
   const openEdit = (lead: Lead) => { setEditingLead(lead); setDialogOpen(true); };
 
+  const handleKanbanStatusChange = (leadId: string, newStatus: LeadStatus) => {
+    updateLead.mutate({ id: leadId, status: newStatus });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
