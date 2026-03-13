@@ -175,6 +175,8 @@ export default function LeadsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <LeadDialog open={dialogOpen} onOpenChange={setDialogOpen} lead={editingLead} onCreate={createLead} onUpdate={updateLead} />
       <CsvImportDialog open={csvDialogOpen} onOpenChange={setCsvDialogOpen} onCreate={createLead} />
     </div>
   );
