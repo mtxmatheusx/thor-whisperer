@@ -109,3 +109,51 @@ export const LEAD_SOURCE_LABELS: Record<LeadSource, string> = {
   referral: 'Indicação',
   import: 'Importação',
 };
+
+// === Phase 2: Campaigns ===
+
+export type CampaignStatus = 'draft' | 'active' | 'paused' | 'completed' | 'archived';
+
+export interface CampaignStep {
+  id: string;
+  order: number;
+  type: 'message' | 'wait' | 'condition';
+  platform?: Platform;
+  messageType?: 'initial_outreach' | 'follow_up' | 'meeting_request' | 'proposal';
+  template?: string;
+  waitDays?: number;
+  condition?: string;
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  description?: string;
+  status: CampaignStatus;
+  steps: CampaignStep[];
+  targetLeadIds: string[];
+  stats: {
+    sent: number;
+    opened: number;
+    replied: number;
+    meetings: number;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
+export const CAMPAIGN_STATUS_LABELS: Record<CampaignStatus, string> = {
+  draft: 'Rascunho',
+  active: 'Ativa',
+  paused: 'Pausada',
+  completed: 'Concluída',
+  archived: 'Arquivada',
+};
+
+export const CAMPAIGN_STATUS_COLORS: Record<CampaignStatus, string> = {
+  draft: 'bg-muted text-muted-foreground',
+  active: 'bg-emerald-100 text-emerald-800',
+  paused: 'bg-yellow-100 text-yellow-800',
+  completed: 'bg-blue-100 text-blue-800',
+  archived: 'bg-red-100 text-red-800',
+};
