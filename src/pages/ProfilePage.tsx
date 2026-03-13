@@ -1,5 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -54,14 +52,7 @@ const FALLBACK_PROFILE = {
 };
 
 export default function ProfilePage() {
-  const { data: profile, isLoading, isError } = useQuery({
-    queryKey: ['paula-profile'],
-    queryFn: () => api.getPaulaProfile(),
-    retry: 1,
-    staleTime: 60000,
-  });
-
-  const p = profile || FALLBACK_PROFILE;
+  const p = FALLBACK_PROFILE;
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
