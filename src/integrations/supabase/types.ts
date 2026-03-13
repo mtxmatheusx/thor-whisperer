@@ -14,7 +14,155 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      interactions: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          lead_id: string
+          metadata: Json | null
+          platform: string
+          status: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          lead_id: string
+          metadata?: Json | null
+          platform?: string
+          status?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string
+          metadata?: Json | null
+          platform?: string
+          status?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interactions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          company: string
+          company_size: string | null
+          created_at: string
+          email: string | null
+          id: string
+          industry: string
+          last_contact: string | null
+          linkedin: string | null
+          location: string | null
+          name: string
+          next_follow_up: string | null
+          notes: string | null
+          phone: string | null
+          position: string
+          score: number
+          source: string
+          status: string
+          tags: string[] | null
+          thor_analysis: Json | null
+          updated_at: string
+          user_id: string
+          value: number | null
+        }
+        Insert: {
+          company: string
+          company_size?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          industry?: string
+          last_contact?: string | null
+          linkedin?: string | null
+          location?: string | null
+          name: string
+          next_follow_up?: string | null
+          notes?: string | null
+          phone?: string | null
+          position?: string
+          score?: number
+          source?: string
+          status?: string
+          tags?: string[] | null
+          thor_analysis?: Json | null
+          updated_at?: string
+          user_id: string
+          value?: number | null
+        }
+        Update: {
+          company?: string
+          company_size?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          industry?: string
+          last_contact?: string | null
+          linkedin?: string | null
+          location?: string | null
+          name?: string
+          next_follow_up?: string | null
+          notes?: string | null
+          phone?: string | null
+          position?: string
+          score?: number
+          source?: string
+          status?: string
+          tags?: string[] | null
+          thor_analysis?: Json | null
+          updated_at?: string
+          user_id?: string
+          value?: number | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
