@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Lead } from '@/types';
+import { Lead, ThorAnalysis } from '@/types';
 import { toast } from '@/hooks/use-toast';
 
 export function useLeads() {
@@ -14,7 +14,10 @@ export function useLeads() {
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as Lead[];
+      return (data || []).map(row => ({
+        ...row,
+        thor_analysis: row.thor_analysis as unknown as ThorAnalysis | undefined,
+      })) as Lead[];
     },
   });
 
@@ -22,9 +25,10 @@ export function useLeads() {
     mutationFn: async (lead: Partial<Lead>) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
+      const { thor_analysis, ...rest } = lead;
       const { data, error } = await supabase
         .from('leads')
-        .insert({ ...lead, user_id: user.id })
+        .insert({ ...rest, user_id: user.id, thor_analysis: thor_analysis as unknown as Record<string, unknown> })
         .select()
         .single();
       if (error) throw error;
@@ -41,9 +45,14 @@ export function useLeads() {
 
   const updateLead = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Lead> & { id: string }) => {
+      const { thor_analysis, ...rest } = updates;
+      const payload: Record<string, unknown> = { ...rest };
+      if (thor_analysis !== undefined) {
+        payload.thor_analysis = thor_analysis as unknown as Record<string, unknown>;
+      }
       const { data, error } = await supabase
         .from('leads')
-        .update(updates)
+        .update(payload)
         .eq('id', id)
         .select()
         .single();
