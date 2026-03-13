@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { jsPDF } from 'jspdf';
@@ -91,6 +92,9 @@ export default function Proposals() {
   const [generatedProposal, setGeneratedProposal] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailTo, setEmailTo] = useState('');
 
   const selectedFormat = FORMATS.find(f => f.id === proposal.format);
   const selectedTheme = TALK_THEMES.find(t => t.id === proposal.theme);
@@ -455,6 +459,30 @@ Site: ${PAULA_BIO.contact.site}`;
     }
   };
 
+  const handleSendEmail = async () => {
+    if (!generatedProposal || !emailTo) return;
+    setSendingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-proposal-email', {
+        body: {
+          recipientEmail: emailTo,
+          recipientName: proposal.clientName,
+          proposalText: generatedProposal,
+          subject: `Proposta Comercial — Paula Pimenta — ${proposal.clientCompany}`,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: 'Proposta enviada!', description: data.message });
+      setEmailDialogOpen(false);
+      setEmailTo('');
+    } catch (err: any) {
+      toast({ title: 'Erro ao enviar', description: err.message, variant: 'destructive' });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -591,6 +619,9 @@ Site: ${PAULA_BIO.contact.site}`;
                 <Button size="sm" onClick={handleDownloadPdf} disabled={generatingPdf} className="gap-1 bg-primary">
                   {generatingPdf ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                   PDF com Branding
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => setEmailDialogOpen(true)} className="gap-1">
+                  <Send className="h-3.5 w-3.5" /> Enviar por E-mail
                 </Button>
               </div>
               <Card>
@@ -733,6 +764,36 @@ Site: ${PAULA_BIO.contact.site}`;
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Email Dialog */}
+      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enviar Proposta por E-mail</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>E-mail do destinatário</Label>
+              <Input
+                type="email"
+                placeholder="cliente@empresa.com"
+                value={emailTo}
+                onChange={e => setEmailTo(e.target.value)}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              A proposta será formatada com o branding da Paula Pimenta e enviada ao destinatário.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSendEmail} disabled={sendingEmail || !emailTo} className="gap-1">
+              {sendingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Enviar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,5 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -54,32 +52,13 @@ const FALLBACK_PROFILE = {
 };
 
 export default function ProfilePage() {
-  const { data: profile, isLoading, isError } = useQuery({
-    queryKey: ['paula-profile'],
-    queryFn: () => api.getPaulaProfile(),
-    retry: 1,
-    staleTime: 60000,
-  });
-
-  const p = profile || FALLBACK_PROFILE;
-
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
-  }
+  const p = FALLBACK_PROFILE;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Perfil da Palestrante</h1>
-          <p className="text-muted-foreground">Informações completas para propostas comerciais</p>
-        </div>
-        {!isError && profile && (
-          <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-200">🟢 API conectada</Badge>
-        )}
-        {isError && (
-          <Badge variant="outline" className="text-xs text-muted-foreground">Dados locais</Badge>
-        )}
+      <div>
+        <h1 className="text-2xl font-bold">Perfil da Palestrante</h1>
+        <p className="text-muted-foreground">Informações completas para propostas comerciais</p>
       </div>
 
       {/* Header Card */}
