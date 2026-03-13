@@ -620,6 +620,9 @@ Site: ${PAULA_BIO.contact.site}`;
                   {generatingPdf ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                   PDF com Branding
                 </Button>
+                <Button size="sm" variant="secondary" onClick={() => setEmailDialogOpen(true)} className="gap-1">
+                  <Send className="h-3.5 w-3.5" /> Enviar por E-mail
+                </Button>
               </div>
               <Card>
                 <CardContent className="p-6">
