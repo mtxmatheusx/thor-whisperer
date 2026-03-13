@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLeads } from '@/hooks/useLeads';
 import { Lead, LeadStatus, LeadSource, LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, LEAD_SOURCE_LABELS } from '@/types';
 import { Button } from '@/components/ui/button';
