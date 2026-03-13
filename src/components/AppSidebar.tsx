@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Brain, Settings, LogOut, Zap, Megaphone, FileText } from 'lucide-react';
+import { LayoutDashboard, Users, Brain, Settings, LogOut, Zap, Megaphone, FileText, UserCircle, BarChart3 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,6 +22,8 @@ const navItems = [
   { title: 'Leads', url: '/leads', icon: Users },
   { title: 'Campanhas', url: '/campaigns', icon: Megaphone },
   { title: 'Propostas', url: '/proposals', icon: FileText },
+  { title: 'Perfil Paula', url: '/profile', icon: UserCircle },
+  { title: 'Analytics', url: '/analytics', icon: BarChart3 },
   { title: 'Thor AI', url: '/thor', icon: Brain },
   { title: 'Configurações', url: '/settings', icon: Settings },
 ];
