@@ -92,6 +92,9 @@ export default function Proposals() {
   const [generatedProposal, setGeneratedProposal] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailTo, setEmailTo] = useState('');
 
   const selectedFormat = FORMATS.find(f => f.id === proposal.format);
   const selectedTheme = TALK_THEMES.find(t => t.id === proposal.theme);
