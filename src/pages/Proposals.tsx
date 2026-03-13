@@ -459,6 +459,30 @@ Site: ${PAULA_BIO.contact.site}`;
     }
   };
 
+  const handleSendEmail = async () => {
+    if (!generatedProposal || !emailTo) return;
+    setSendingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-proposal-email', {
+        body: {
+          recipientEmail: emailTo,
+          recipientName: proposal.clientName,
+          proposalText: generatedProposal,
+          subject: `Proposta Comercial — Paula Pimenta — ${proposal.clientCompany}`,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: 'Proposta enviada!', description: data.message });
+      setEmailDialogOpen(false);
+      setEmailTo('');
+    } catch (err: any) {
+      toast({ title: 'Erro ao enviar', description: err.message, variant: 'destructive' });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
