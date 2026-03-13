@@ -12,6 +12,8 @@ import Leads from "./pages/Leads";
 import ThorAI from "./pages/ThorAI";
 import Campaigns from "./pages/Campaigns";
 import Proposals from "./pages/Proposals";
+import ProfilePage from "./pages/ProfilePage";
+import AnalyticsPage from "./pages/AnalyticsPage";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
@@ -32,6 +34,8 @@ const App = () => (
             <Route path="/thor" element={<AppLayout><ThorAI /></AppLayout>} />
             <Route path="/campaigns" element={<AppLayout><Campaigns /></AppLayout>} />
             <Route path="/proposals" element={<AppLayout><Proposals /></AppLayout>} />
+            <Route path="/profile" element={<AppLayout><ProfilePage /></AppLayout>} />
+            <Route path="/analytics" element={<AppLayout><AnalyticsPage /></AppLayout>} />
             <Route path="/settings" element={<AppLayout><SettingsPage /></AppLayout>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
