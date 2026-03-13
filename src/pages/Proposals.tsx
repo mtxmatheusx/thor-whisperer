@@ -764,6 +764,36 @@ Site: ${PAULA_BIO.contact.site}`;
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Email Dialog */}
+      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enviar Proposta por E-mail</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>E-mail do destinatário</Label>
+              <Input
+                type="email"
+                placeholder="cliente@empresa.com"
+                value={emailTo}
+                onChange={e => setEmailTo(e.target.value)}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              A proposta será formatada com o branding da Paula Pimenta e enviada ao destinatário.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSendEmail} disabled={sendingEmail || !emailTo} className="gap-1">
+              {sendingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Enviar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
