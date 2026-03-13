@@ -26,7 +26,7 @@ export default function LeadsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
-
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
   const filtered = useMemo(() => {
     return leads.filter(l => {
       if (statusFilter !== 'all' && l.status !== statusFilter) return false;
