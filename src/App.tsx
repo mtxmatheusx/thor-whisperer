@@ -11,6 +11,7 @@ import Dashboard from "./pages/Index";
 import Leads from "./pages/Leads";
 import ThorAI from "./pages/ThorAI";
 import Campaigns from "./pages/Campaigns";
+import Proposals from "./pages/Proposals";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
