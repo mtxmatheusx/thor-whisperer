@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLeads } from '@/hooks/useLeads';
 import { Lead, LeadStatus, LeadSource, LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, LEAD_SOURCE_LABELS } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -166,7 +166,7 @@ function LeadDialog({ open, onOpenChange, lead, onCreate, onUpdate }: {
 
   const isEdit = !!lead;
 
-  useState(() => {
+  useEffect(() => {
     if (lead) {
       setForm({
         name: lead.name, company: lead.company, position: lead.position,
@@ -182,7 +182,7 @@ function LeadDialog({ open, onOpenChange, lead, onCreate, onUpdate }: {
         industry: '', company_size: '1-10', location: '', notes: '', value: 0, tags: [],
       });
     }
-  });
+  }, [lead]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
