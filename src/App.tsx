@@ -10,6 +10,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Index";
 import Leads from "./pages/Leads";
 import ThorAI from "./pages/ThorAI";
+import Campaigns from "./pages/Campaigns";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
