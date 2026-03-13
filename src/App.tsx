@@ -11,6 +11,7 @@ import Dashboard from "./pages/Index";
 import Leads from "./pages/Leads";
 import ThorAI from "./pages/ThorAI";
 import Campaigns from "./pages/Campaigns";
+import Proposals from "./pages/Proposals";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/leads" element={<AppLayout><Leads /></AppLayout>} />
             <Route path="/thor" element={<AppLayout><ThorAI /></AppLayout>} />
             <Route path="/campaigns" element={<AppLayout><Campaigns /></AppLayout>} />
+            <Route path="/proposals" element={<AppLayout><Proposals /></AppLayout>} />
             <Route path="/settings" element={<AppLayout><SettingsPage /></AppLayout>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
