@@ -54,23 +54,11 @@ const FALLBACK_PROFILE = {
 export default function ProfilePage() {
   const p = FALLBACK_PROFILE;
 
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
-  }
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Perfil da Palestrante</h1>
-          <p className="text-muted-foreground">Informações completas para propostas comerciais</p>
-        </div>
-        {!isError && profile && (
-          <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-200">🟢 API conectada</Badge>
-        )}
-        {isError && (
-          <Badge variant="outline" className="text-xs text-muted-foreground">Dados locais</Badge>
-        )}
+      <div>
+        <h1 className="text-2xl font-bold">Perfil da Palestrante</h1>
+        <p className="text-muted-foreground">Informações completas para propostas comerciais</p>
       </div>
 
       {/* Header Card */}
