@@ -25,10 +25,12 @@ export function useLeads() {
     mutationFn: async (lead: Partial<Lead>) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
-      const { thor_analysis, ...rest } = lead;
+      const { thor_analysis, user_id, id, created_at, updated_at, ...rest } = lead as any;
+      const insertData: Record<string, unknown> = { ...rest, user_id: user.id };
+      if (thor_analysis) insertData.thor_analysis = thor_analysis;
       const { data, error } = await supabase
         .from('leads')
-        .insert({ ...rest, user_id: user.id, thor_analysis: thor_analysis as unknown as Record<string, unknown> })
+        .insert(insertData as any)
         .select()
         .single();
       if (error) throw error;
