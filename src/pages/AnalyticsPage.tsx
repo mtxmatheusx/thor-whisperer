@@ -211,7 +211,7 @@ export default function AnalyticsPage() {
                 {platforms.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
-                      <Pie data={platforms} cx="50%" cy="50%" outerRadius={100} dataKey="leads" label={({ name, leads: v }) => `${name}: ${v}`}>
+                      <Pie data={platforms} cx="50%" cy="50%" outerRadius={100} dataKey="leads" label={({ name, value }) => `${name}: ${value}`}>
                         {platforms.map((_: any, i: number) => (
                           <Cell key={i} fill={FUNNEL_COLORS[i % FUNNEL_COLORS.length]} />
                         ))}
