@@ -20,6 +20,11 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+function NotificationListener() {
+  useLeadNotifications();
+  return null;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -27,6 +32,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <NotificationListener />
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
