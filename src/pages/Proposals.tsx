@@ -9,9 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { jsPDF } from 'jspdf';
 import {
-  FileText, User, Award, Mail, Phone, Linkedin, Instagram, Youtube,
-  Calendar, Clock, MapPin, DollarSign, Download, Eye, Send, Sparkles, Globe
+  FileText, User, Award, Mail, Phone, Linkedin, Instagram,
+  Calendar, Clock, MapPin, DollarSign, Download, Eye, Send, Sparkles, Globe, Loader2, Brain
 } from 'lucide-react';
 
 const PAULA_BIO = {
@@ -57,6 +59,15 @@ const FORMATS = [
   { id: 'programa', label: 'Programa de Desenvolvimento', duration: '4 módulos', price: 35000 },
 ];
 
+// Brand colors
+const BRAND = {
+  primary: '#C47B3B',      // warm orange/copper
+  primaryDark: '#1B2A4A',  // dark navy
+  text: '#222222',
+  muted: '#666666',
+  light: '#F5F0EB',
+};
+
 interface ProposalData {
   clientName: string;
   clientCompany: string;
@@ -73,44 +84,126 @@ interface ProposalData {
 export default function Proposals() {
   const [activeTab, setActiveTab] = useState('generator');
   const [proposal, setProposal] = useState<ProposalData>({
-    clientName: '',
-    clientCompany: '',
-    eventName: '',
-    eventDate: '',
-    eventLocation: '',
-    audience: '',
-    theme: '',
-    format: 'palestra',
-    customNotes: '',
-    language: 'pt',
+    clientName: '', clientCompany: '', eventName: '', eventDate: '',
+    eventLocation: '', audience: '', theme: '', format: 'palestra',
+    customNotes: '', language: 'pt',
   });
   const [generatedProposal, setGeneratedProposal] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   const selectedFormat = FORMATS.find(f => f.id === proposal.format);
   const selectedTheme = TALK_THEMES.find(t => t.id === proposal.theme);
 
+  // Generate proposal using Thor AI
   const handleGenerate = async () => {
     if (!proposal.clientName || !proposal.clientCompany || !proposal.theme || !proposal.format) {
       toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' });
       return;
     }
     setGenerating(true);
-    // Simulate generation (replace with Thor AI endpoint later)
-    await new Promise(r => setTimeout(r, 1500));
 
-    const doc = `
-═══════════════════════════════════════════════
-          PROPOSTA DE PALESTRA
+    try {
+      const { data, error } = await supabase.functions.invoke('thor-ai', {
+        body: {
+          action: 'generate-message',
+          data: {
+            lead: {
+              name: proposal.clientName,
+              company: proposal.clientCompany,
+              position: '',
+              industry: '',
+            },
+            messageType: 'proposal',
+            customInstructions: `Gere uma proposta comercial COMPLETA e profissional para uma palestra/evento.
+
+DADOS DO EVENTO:
+- Cliente: ${proposal.clientName} da ${proposal.clientCompany}
+- Evento: ${proposal.eventName || 'A definir'}
+- Data: ${proposal.eventDate || 'A definir'}
+- Local: ${proposal.eventLocation || 'A definir'}
+- Público: ${proposal.audience || 'Executivos e líderes'}
+- Tema: ${selectedTheme?.label} — ${selectedTheme?.desc}
+- Formato: ${selectedFormat?.label} (${selectedFormat?.duration})
+- Investimento: R$ ${selectedFormat?.price.toLocaleString('pt-BR')},00
+- Idioma: ${proposal.language === 'pt' ? 'Português' : proposal.language === 'en' ? 'Inglês' : 'Espanhol'}
+${proposal.customNotes ? `- Observações: ${proposal.customNotes}` : ''}
+
+A proposta deve incluir:
+1. Saudação personalizada ao cliente
+2. Descrição detalhada do tema e abordagem
+3. Estrutura da palestra (introdução, desenvolvimento, dinâmica, conclusão, Q&A)
+4. Metodologia e diferenciais
+5. Investimento e condições
+6. Bio resumida de Paula Pimenta
+7. Contato
+
+Escreva de forma profissional, persuasiva e personalizada. NÃO use formato JSON. Escreva texto corrido e formatado.`,
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      const aiText = data?.message || data?.content || '';
+
+      // Build final proposal with header/footer
+      const doc = `═══════════════════════════════════════════════
+          PROPOSTA COMERCIAL
           Paula Pimenta
 ═══════════════════════════════════════════════
 
 Para: ${proposal.clientName}
 Empresa: ${proposal.clientCompany}
 ${proposal.eventName ? `Evento: ${proposal.eventName}` : ''}
-${proposal.eventDate ? `Data sugerida: ${proposal.eventDate}` : 'Data sugerida: A definir'}
+${proposal.eventDate ? `Data: ${proposal.eventDate}` : 'Data: A definir'}
 ${proposal.eventLocation ? `Local: ${proposal.eventLocation}` : 'Local: A definir'}
-Idioma: ${proposal.language === 'pt' ? 'Português' : proposal.language === 'en' ? 'Inglês' : 'Espanhol'}
+
+───────────────────────────────────────────────
+
+${aiText}
+
+───────────────────────────────────────────────
+INVESTIMENTO
+───────────────────────────────────────────────
+Formato: ${selectedFormat?.label} (${selectedFormat?.duration})
+Valor: R$ ${selectedFormat?.price.toLocaleString('pt-BR')},00
+
+Inclui:
+✓ Conteúdo autoral e direcionado
+✓ Presença integral de Paula Pimenta + assessor
+✓ Apoio à condução, dinâmica e logística
+
+Condições:
+• NF emitida em até 5 dias após o evento
+• Prazo de pagamento: 30 dias
+• Custos de deslocamento por conta da contratante
+
+───────────────────────────────────────────────
+CONTATO
+───────────────────────────────────────────────
+E-mail: ${PAULA_BIO.contact.email}
+Telefone: ${PAULA_BIO.contact.phone}
+LinkedIn: ${PAULA_BIO.contact.linkedin}
+Instagram: ${PAULA_BIO.contact.instagram}
+Site: ${PAULA_BIO.contact.site}`;
+
+      setGeneratedProposal(doc);
+      setActiveTab('preview');
+      toast({ title: 'Proposta gerada com Thor AI!' });
+    } catch (err) {
+      console.error('Proposal generation error:', err);
+      // Fallback to template
+      const doc = `═══════════════════════════════════════════════
+          PROPOSTA COMERCIAL
+          Paula Pimenta
+═══════════════════════════════════════════════
+
+Para: ${proposal.clientName}
+Empresa: ${proposal.clientCompany}
+${proposal.eventName ? `Evento: ${proposal.eventName}` : ''}
+${proposal.eventDate ? `Data: ${proposal.eventDate}` : 'Data: A definir'}
+${proposal.eventLocation ? `Local: ${proposal.eventLocation}` : 'Local: A definir'}
 
 ───────────────────────────────────────────────
 TEMA: ${selectedTheme?.label || proposal.theme}
@@ -119,14 +212,13 @@ ${selectedTheme?.desc || ''}
 
 FORMATO: ${selectedFormat?.label}
 Duração: ${selectedFormat?.duration}
-
-${proposal.audience ? `PÚBLICO-ALVO: ${proposal.audience}` : ''}
+${proposal.audience ? `\nPÚBLICO-ALVO: ${proposal.audience}` : ''}
 
 ───────────────────────────────────────────────
 ESTRUTURA
 ───────────────────────────────────────────────
-• Introdução — Apresentação e contextualização do tema
-• Desenvolvimento — Conteúdo autoral com exemplos práticos e estudos de caso
+• Introdução — Apresentação e contextualização
+• Desenvolvimento — Conteúdo autoral com exemplos práticos
 • Dinâmica interativa — Engajamento com o público
 • Conclusão — Reflexões finais e ações práticas
 • Q&A — Abertura para perguntas
@@ -137,17 +229,14 @@ INVESTIMENTO
 Valor: R$ ${selectedFormat?.price.toLocaleString('pt-BR')},00
 
 Inclui:
-✓ Conteúdo autoral e direcionado ao momento da equipe
+✓ Conteúdo autoral e direcionado
 ✓ Presença integral de Paula Pimenta + assessor
 ✓ Apoio à condução, dinâmica e logística
 
-Importante:
-• Custos de deslocamento (aéreo/terrestre) são de responsabilidade da empresa contratante
-
-Condições de pagamento:
+Condições:
 • NF emitida em até 5 dias após o evento
 • Prazo de pagamento: 30 dias
-
+• Custos de deslocamento por conta da contratante
 ${proposal.customNotes ? `\nOBSERVAÇÕES:\n${proposal.customNotes}` : ''}
 
 ───────────────────────────────────────────────
@@ -155,7 +244,6 @@ SOBRE PAULA PIMENTA
 ───────────────────────────────────────────────
 ${PAULA_BIO.summary}
 
-Destaques:
 ${PAULA_BIO.achievements.map(a => `• ${a}`).join('\n')}
 
 ───────────────────────────────────────────────
@@ -164,14 +252,14 @@ CONTATO
 E-mail: ${PAULA_BIO.contact.email}
 Telefone: ${PAULA_BIO.contact.phone}
 LinkedIn: ${PAULA_BIO.contact.linkedin}
-Instagram: ${PAULA_BIO.contact.instagram}
-Site: ${PAULA_BIO.contact.site}
-    `.trim();
+Site: ${PAULA_BIO.contact.site}`;
 
-    setGeneratedProposal(doc);
-    setGenerating(false);
-    setActiveTab('preview');
-    toast({ title: 'Proposta gerada com sucesso!' });
+      setGeneratedProposal(doc);
+      setActiveTab('preview');
+      toast({ title: 'Proposta gerada (template local)', description: 'Thor AI indisponível, usando template.' });
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const handleCopy = () => {
@@ -181,7 +269,7 @@ Site: ${PAULA_BIO.contact.site}
     }
   };
 
-  const handleDownload = () => {
+  const handleDownloadTxt = () => {
     if (!generatedProposal) return;
     const blob = new Blob([generatedProposal], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -190,19 +278,192 @@ Site: ${PAULA_BIO.contact.site}
     a.download = `Proposta_${proposal.clientCompany.replace(/\s/g, '_') || 'Palestra'}_Paula_Pimenta.txt`;
     a.click();
     URL.revokeObjectURL(url);
-    toast({ title: 'Download iniciado!' });
+  };
+
+  // PDF Generation with branding
+  const handleDownloadPdf = async () => {
+    if (!generatedProposal) return;
+    setGeneratingPdf(true);
+
+    try {
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const margin = 20;
+      const contentW = pageW - margin * 2;
+      let y = margin;
+
+      // Load logo
+      let logoImg: string | null = null;
+      try {
+        const response = await fetch('/images/logo-paula.png');
+        const blob = await response.blob();
+        logoImg = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+      } catch { /* logo not available */ }
+
+      const addPage = () => {
+        doc.addPage();
+        y = margin;
+        // Header line on new pages
+        doc.setDrawColor(BRAND.primary);
+        doc.setLineWidth(0.5);
+        doc.line(margin, y, pageW - margin, y);
+        y += 8;
+      };
+
+      const checkSpace = (needed: number) => {
+        if (y + needed > pageH - 25) addPage();
+      };
+
+      // === COVER / HEADER ===
+      // Navy header bar
+      doc.setFillColor(BRAND.primaryDark);
+      doc.rect(0, 0, pageW, 45, 'F');
+
+      // Logo
+      if (logoImg) {
+        doc.addImage(logoImg, 'PNG', margin, 8, 30, 12);
+      }
+
+      // Title
+      doc.setTextColor('#FFFFFF');
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.text('PROPOSTA COMERCIAL', pageW - margin, 20, { align: 'right' });
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Paula Pimenta', pageW - margin, 28, { align: 'right' });
+
+      // Copper accent line
+      doc.setDrawColor(BRAND.primary);
+      doc.setLineWidth(1.5);
+      doc.line(0, 45, pageW, 45);
+
+      y = 55;
+
+      // === CLIENT INFO ===
+      doc.setTextColor(BRAND.primary);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('DADOS DO CLIENTE', margin, y);
+      y += 7;
+
+      doc.setTextColor(BRAND.text);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      const clientInfo = [
+        `Para: ${proposal.clientName}`,
+        `Empresa: ${proposal.clientCompany}`,
+        proposal.eventName ? `Evento: ${proposal.eventName}` : '',
+        `Data: ${proposal.eventDate || 'A definir'}`,
+        `Local: ${proposal.eventLocation || 'A definir'}`,
+        proposal.audience ? `Público: ${proposal.audience}` : '',
+      ].filter(Boolean);
+
+      clientInfo.forEach(line => {
+        doc.text(line, margin, y);
+        y += 5;
+      });
+
+      y += 5;
+
+      // === PROPOSAL CONTENT ===
+      // Split the AI-generated content into sections
+      const lines = generatedProposal.split('\n');
+      
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) { y += 3; continue; }
+
+        // Skip the header we already rendered
+        if (trimmed.startsWith('═══') || trimmed.startsWith('───')) {
+          checkSpace(8);
+          doc.setDrawColor(BRAND.primary);
+          doc.setLineWidth(0.3);
+          doc.line(margin, y, pageW - margin, y);
+          y += 5;
+          continue;
+        }
+
+        if (trimmed === 'PROPOSTA COMERCIAL' || trimmed === 'Paula Pimenta') continue;
+        if (trimmed.startsWith('Para:') || trimmed.startsWith('Empresa:') || trimmed.startsWith('Evento:') || trimmed.startsWith('Data:') || trimmed.startsWith('Local:')) continue;
+
+        // Section headers
+        if (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && !trimmed.startsWith('•') && !trimmed.startsWith('✓')) {
+          checkSpace(12);
+          doc.setTextColor(BRAND.primary);
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'bold');
+          doc.text(trimmed, margin, y);
+          y += 7;
+          continue;
+        }
+
+        // Bullet points
+        if (trimmed.startsWith('•') || trimmed.startsWith('✓')) {
+          checkSpace(6);
+          doc.setTextColor(BRAND.text);
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'normal');
+          const bulletLines = doc.splitTextToSize(trimmed, contentW - 5);
+          bulletLines.forEach((bl: string) => {
+            checkSpace(5);
+            doc.text(bl, margin + 3, y);
+            y += 4.5;
+          });
+          continue;
+        }
+
+        // Regular text
+        checkSpace(6);
+        doc.setTextColor(BRAND.text);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        const wrapped = doc.splitTextToSize(trimmed, contentW);
+        wrapped.forEach((wl: string) => {
+          checkSpace(5);
+          doc.text(wl, margin, y);
+          y += 4.5;
+        });
+      }
+
+      // === FOOTER ===
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        // Footer bar
+        doc.setFillColor(BRAND.primaryDark);
+        doc.rect(0, pageH - 15, pageW, 15, 'F');
+        doc.setTextColor('#FFFFFF');
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`${PAULA_BIO.contact.email}  |  ${PAULA_BIO.contact.phone}  |  ${PAULA_BIO.contact.site}`, pageW / 2, pageH - 7, { align: 'center' });
+        doc.text(`Página ${i} de ${totalPages}`, pageW - margin, pageH - 7, { align: 'right' });
+      }
+
+      doc.save(`Proposta_${proposal.clientCompany.replace(/\s/g, '_') || 'Palestra'}_Paula_Pimenta.pdf`);
+      toast({ title: 'PDF gerado com sucesso!' });
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      toast({ title: 'Erro ao gerar PDF', variant: 'destructive' });
+    } finally {
+      setGeneratingPdf(false);
+    }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Propostas de Palestra</h1>
-          <p className="text-muted-foreground">Gere propostas profissionais para eventos e palestras</p>
+          <p className="text-muted-foreground">Gere propostas profissionais com IA</p>
         </div>
         <Badge variant="outline" className="gap-1 border-primary/30 text-primary">
-          <Sparkles className="h-3 w-3" /> Gerador Inteligente
+          <Brain className="h-3 w-3" /> Thor AI Integrado
         </Badge>
       </div>
 
@@ -217,11 +478,8 @@ Site: ${PAULA_BIO.contact.site}
         {/* ── GENERATOR TAB ── */}
         <TabsContent value="generator" className="space-y-4 mt-4">
           <div className="grid gap-4 md:grid-cols-2">
-            {/* Client Info */}
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Dados do Cliente</CardTitle>
-              </CardHeader>
+              <CardHeader className="pb-3"><CardTitle className="text-base">Dados do Cliente</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-1.5">
                   <Label>Nome do contato *</Label>
@@ -238,11 +496,8 @@ Site: ${PAULA_BIO.contact.site}
               </CardContent>
             </Card>
 
-            {/* Event Info */}
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Dados do Evento</CardTitle>
-              </CardHeader>
+              <CardHeader className="pb-3"><CardTitle className="text-base">Dados do Evento</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-1.5">
                   <Label>Nome do evento</Label>
@@ -272,23 +527,15 @@ Site: ${PAULA_BIO.contact.site}
               </CardContent>
             </Card>
 
-            {/* Theme */}
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Tema da Palestra *</CardTitle>
-              </CardHeader>
+              <CardHeader className="pb-3"><CardTitle className="text-base">Tema da Palestra *</CardTitle></CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-2">
                   {TALK_THEMES.map(theme => (
-                    <button
-                      key={theme.id}
-                      onClick={() => setProposal(p => ({ ...p, theme: theme.id }))}
+                    <button key={theme.id} onClick={() => setProposal(p => ({ ...p, theme: theme.id }))}
                       className={`rounded-lg border p-3 text-left transition-all hover:border-primary/50 ${
-                        proposal.theme === theme.id
-                          ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
-                          : 'border-border'
-                      }`}
-                    >
+                        proposal.theme === theme.id ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border'
+                      }`}>
                       <p className="text-sm font-medium text-foreground">{theme.label}</p>
                       <p className="mt-0.5 text-xs text-muted-foreground">{theme.desc}</p>
                     </button>
@@ -297,52 +544,36 @@ Site: ${PAULA_BIO.contact.site}
               </CardContent>
             </Card>
 
-            {/* Format */}
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Formato *</CardTitle>
-              </CardHeader>
+              <CardHeader className="pb-3"><CardTitle className="text-base">Formato *</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-2">
                   {FORMATS.map(fmt => (
-                    <button
-                      key={fmt.id}
-                      onClick={() => setProposal(p => ({ ...p, format: fmt.id }))}
+                    <button key={fmt.id} onClick={() => setProposal(p => ({ ...p, format: fmt.id }))}
                       className={`flex w-full items-center justify-between rounded-lg border p-3 transition-all hover:border-primary/50 ${
-                        proposal.format === fmt.id
-                          ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
-                          : 'border-border'
-                      }`}
-                    >
+                        proposal.format === fmt.id ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border'
+                      }`}>
                       <div className="text-left">
                         <p className="text-sm font-medium text-foreground">{fmt.label}</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Clock className="h-3 w-3" /> {fmt.duration}
-                        </p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> {fmt.duration}</p>
                       </div>
-                      <span className="text-sm font-semibold text-primary">
-                        R$ {fmt.price.toLocaleString('pt-BR')}
-                      </span>
+                      <span className="text-sm font-semibold text-primary">R$ {fmt.price.toLocaleString('pt-BR')}</span>
                     </button>
                   ))}
                 </div>
                 <Separator />
                 <div className="space-y-1.5">
                   <Label>Observações adicionais</Label>
-                  <Textarea
-                    placeholder="Ex: A empresa está em processo de fusão e precisa de foco em gestão de mudanças..."
-                    value={proposal.customNotes}
-                    onChange={e => setProposal(p => ({ ...p, customNotes: e.target.value }))}
-                    rows={3}
-                  />
+                  <Textarea placeholder="Ex: A empresa está em processo de fusão..." value={proposal.customNotes}
+                    onChange={e => setProposal(p => ({ ...p, customNotes: e.target.value }))} rows={3} />
                 </div>
               </CardContent>
             </Card>
           </div>
 
           <Button onClick={handleGenerate} disabled={generating} className="w-full gap-2" size="lg">
-            <Sparkles className="h-4 w-4" />
-            {generating ? 'Gerando proposta...' : 'Gerar Proposta'}
+            {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {generating ? 'Gerando com Thor AI...' : 'Gerar Proposta com IA'}
           </Button>
         </TabsContent>
 
@@ -350,22 +581,21 @@ Site: ${PAULA_BIO.contact.site}
         <TabsContent value="preview" className="mt-4 space-y-4">
           {generatedProposal && (
             <>
-              <div className="flex gap-2 justify-end">
+              <div className="flex gap-2 justify-end flex-wrap">
                 <Button variant="outline" size="sm" onClick={handleCopy} className="gap-1">
                   <FileText className="h-3.5 w-3.5" /> Copiar
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleDownload} className="gap-1">
-                  <Download className="h-3.5 w-3.5" /> Download
+                <Button variant="outline" size="sm" onClick={handleDownloadTxt} className="gap-1">
+                  <Download className="h-3.5 w-3.5" /> TXT
                 </Button>
-                <Button size="sm" className="gap-1">
-                  <Send className="h-3.5 w-3.5" /> Enviar por E-mail
+                <Button size="sm" onClick={handleDownloadPdf} disabled={generatingPdf} className="gap-1 bg-primary">
+                  {generatingPdf ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                  PDF com Branding
                 </Button>
               </div>
               <Card>
                 <CardContent className="p-6">
-                  <pre className="whitespace-pre-wrap font-mono text-sm text-foreground leading-relaxed">
-                    {generatedProposal}
-                  </pre>
+                  <pre className="whitespace-pre-wrap font-mono text-sm text-foreground leading-relaxed">{generatedProposal}</pre>
                 </CardContent>
               </Card>
             </>
@@ -377,16 +607,14 @@ Site: ${PAULA_BIO.contact.site}
           <div className="grid gap-4 md:grid-cols-3">
             <Card className="md:col-span-2">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5 text-primary" /> {PAULA_BIO.name}
-                </CardTitle>
+                <CardTitle className="flex items-center gap-2"><User className="h-5 w-5 text-primary" /> {PAULA_BIO.name}</CardTitle>
                 <CardDescription>{PAULA_BIO.title}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-foreground leading-relaxed">{PAULA_BIO.summary}</p>
                 <Separator />
                 <div>
-                  <h4 className="text-sm font-semibold text-foreground mb-2">Conquistas & Reconhecimentos</h4>
+                  <h4 className="text-sm font-semibold text-foreground mb-2">Conquistas</h4>
                   <ul className="space-y-1.5">
                     {PAULA_BIO.achievements.map((a, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -397,20 +625,16 @@ Site: ${PAULA_BIO.contact.site}
                 </div>
                 <Separator />
                 <div>
-                  <h4 className="text-sm font-semibold text-foreground mb-2">Formação Acadêmica</h4>
+                  <h4 className="text-sm font-semibold text-foreground mb-2">Formação</h4>
                   <ul className="space-y-1 text-sm text-muted-foreground">
-                    {PAULA_BIO.education.map((e, i) => (
-                      <li key={i}>• {e}</li>
-                    ))}
+                    {PAULA_BIO.education.map((e, i) => <li key={i}>• {e}</li>)}
                   </ul>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Contato</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-base">Contato</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <a href={`mailto:${PAULA_BIO.contact.email}`} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
                   <Mail className="h-4 w-4" /> {PAULA_BIO.contact.email}
@@ -431,7 +655,6 @@ Site: ${PAULA_BIO.contact.site}
             </Card>
           </div>
 
-          {/* PDF Images Gallery */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Media Kit</CardTitle>
@@ -463,9 +686,7 @@ Site: ${PAULA_BIO.contact.site}
         <TabsContent value="portfolio" className="mt-4 space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Temas de Palestra</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-base">Temas de Palestra</CardTitle></CardHeader>
               <CardContent className="space-y-2">
                 {TALK_THEMES.filter(t => t.id !== 'custom').map(theme => (
                   <div key={theme.id} className="rounded-lg border border-border p-3">
@@ -477,17 +698,13 @@ Site: ${PAULA_BIO.contact.site}
             </Card>
 
             <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Formatos & Investimento</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-base">Formatos & Investimento</CardTitle></CardHeader>
               <CardContent className="space-y-2">
                 {FORMATS.map(fmt => (
                   <div key={fmt.id} className="flex items-center justify-between rounded-lg border border-border p-3">
                     <div>
                       <p className="text-sm font-medium text-foreground">{fmt.label}</p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> {fmt.duration}
-                      </p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> {fmt.duration}</p>
                     </div>
                     <Badge variant="secondary" className="gap-1">
                       <DollarSign className="h-3 w-3" /> R$ {fmt.price.toLocaleString('pt-BR')}
@@ -498,17 +715,10 @@ Site: ${PAULA_BIO.contact.site}
             </Card>
 
             <Card className="md:col-span-2">
-              <CardHeader>
-                <CardTitle className="text-base">Incluso em Todas as Propostas</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-base">Incluso em Todas as Propostas</CardTitle></CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {[
-                    'Conteúdo autoral e personalizado',
-                    'Presença integral + assessor',
-                    'Dinâmica de grupo interativa',
-                    'Apoio logístico no evento',
-                  ].map(item => (
+                  {['Conteúdo autoral e personalizado', 'Presença integral + assessor', 'Dinâmica de grupo interativa', 'Apoio logístico no evento'].map(item => (
                     <div key={item} className="flex items-start gap-2 rounded-lg bg-primary/5 p-3">
                       <span className="text-primary text-sm">✓</span>
                       <span className="text-xs text-foreground">{item}</span>
@@ -516,7 +726,7 @@ Site: ${PAULA_BIO.contact.site}
                   ))}
                 </div>
                 <p className="mt-3 text-xs text-muted-foreground">
-                  * Custos de deslocamento (aéreo/terrestre) de Paula Pimenta e assessor são de responsabilidade da empresa contratante.
+                  * Custos de deslocamento (aéreo/terrestre) são de responsabilidade da empresa contratante.
                 </p>
               </CardContent>
             </Card>
