@@ -91,67 +91,90 @@ export default function LeadsPage() {
         </CardContent>
       </Card>
 
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
+      {/* View Toggle */}
+      <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'list' | 'kanban')}>
+        <TabsList>
+          <TabsTrigger value="kanban" className="gap-1.5">
+            <LayoutGrid className="h-4 w-4" /> Kanban
+          </TabsTrigger>
+          <TabsTrigger value="list" className="gap-1.5">
+            <List className="h-4 w-4" /> Lista
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="kanban" className="mt-4">
           {isLoading ? (
             <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              {leads.length === 0 ? 'Nenhum lead cadastrado. Clique em "Novo Lead" para começar.' : 'Nenhum lead encontrado com esses filtros.'}
-            </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Fonte</TableHead>
-                  <TableHead>Score</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead className="w-[80px]">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map(lead => (
-                  <TableRow key={lead.id} className="cursor-pointer" onClick={() => openEdit(lead)}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium text-sm">{lead.name}</p>
-                        <p className="text-xs text-muted-foreground">{lead.position}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm">{lead.company}</TableCell>
-                    <TableCell>
-                      <Badge className={LEAD_STATUS_COLORS[lead.status] + ' text-xs'}>{LEAD_STATUS_LABELS[lead.status]}</Badge>
-                    </TableCell>
-                    <TableCell className="text-sm">{LEAD_SOURCE_LABELS[lead.source]}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-16 rounded-full bg-muted">
-                          <div className="h-2 rounded-full bg-primary" style={{ width: `${lead.score}%` }} />
-                        </div>
-                        <span className="text-xs">{lead.score}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {lead.value ? `R$ ${lead.value.toLocaleString('pt-BR')}` : '—'}
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon" onClick={e => { e.stopPropagation(); deleteLead.mutate(lead.id); }}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <KanbanBoard
+              leads={filtered}
+              onStatusChange={handleKanbanStatusChange}
+              onLeadClick={openEdit}
+            />
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
 
-      <LeadDialog open={dialogOpen} onOpenChange={setDialogOpen} lead={editingLead} onCreate={createLead} onUpdate={updateLead} />
+        <TabsContent value="list" className="mt-4">
+          <Card>
+            <CardContent className="p-0">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+              ) : filtered.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  {leads.length === 0 ? 'Nenhum lead cadastrado. Clique em "Novo Lead" para começar.' : 'Nenhum lead encontrado com esses filtros.'}
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Empresa</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Fonte</TableHead>
+                      <TableHead>Score</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead className="w-[80px]">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map(lead => (
+                      <TableRow key={lead.id} className="cursor-pointer" onClick={() => openEdit(lead)}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium text-sm">{lead.name}</p>
+                            <p className="text-xs text-muted-foreground">{lead.position}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm">{lead.company}</TableCell>
+                        <TableCell>
+                          <Badge className={LEAD_STATUS_COLORS[lead.status] + ' text-xs'}>{LEAD_STATUS_LABELS[lead.status]}</Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">{LEAD_SOURCE_LABELS[lead.source]}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-16 rounded-full bg-muted">
+                              <div className="h-2 rounded-full bg-primary" style={{ width: `${lead.score}%` }} />
+                            </div>
+                            <span className="text-xs">{lead.score}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {lead.value ? `R$ ${lead.value.toLocaleString('pt-BR')}` : '—'}
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="icon" onClick={e => { e.stopPropagation(); deleteLead.mutate(lead.id); }}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
       <CsvImportDialog open={csvDialogOpen} onOpenChange={setCsvDialogOpen} onCreate={createLead} />
     </div>
   );
