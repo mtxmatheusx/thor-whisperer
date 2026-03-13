@@ -1,17 +1,6 @@
 import { useState, useCallback } from 'react';
 import { ThorAnalysis, Lead } from '@/types';
-
-const THOR_ENDPOINT = import.meta.env.VITE_THOR_AI_ENDPOINT || 'http://187.77.232.76:8000';
-
-async function thorRequest<T>(endpoint: string, data: unknown): Promise<T> {
-  const res = await fetch(`${THOR_ENDPOINT}${endpoint}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error(`Thor AI Error: ${res.status}`);
-  return res.json();
-}
+import { supabase } from '@/integrations/supabase/client';
 
 export function useThorAI() {
   const [analyzing, setAnalyzing] = useState(false);
@@ -28,7 +17,12 @@ export function useThorAI() {
     setAnalyzing(true);
     setError(null);
     try {
-      return await thorRequest<ThorAnalysis>('/api/thor/analyze-prospect', prospect);
+      const { data, error: fnError } = await supabase.functions.invoke('thor-ai', {
+        body: { action: 'analyze-prospect', data: prospect },
+      });
+      if (fnError) throw new Error(fnError.message);
+      if (data?.error) throw new Error(data.error);
+      return data as ThorAnalysis;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro na análise';
       setError(msg);
@@ -47,7 +41,12 @@ export function useThorAI() {
     setGenerating(true);
     setError(null);
     try {
-      return await thorRequest('/api/thor/generate-message', context);
+      const { data, error: fnError } = await supabase.functions.invoke('thor-ai', {
+        body: { action: 'generate-message', data: context },
+      });
+      if (fnError) throw new Error(fnError.message);
+      if (data?.error) throw new Error(data.error);
+      return data as { message: string; confidence: number };
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro ao gerar mensagem';
       setError(msg);
@@ -60,12 +59,17 @@ export function useThorAI() {
   const researchCompany = useCallback(async (companyName: string) => {
     setError(null);
     try {
-      return await thorRequest<{
-        overview: string;
-        challenges: string[];
-        opportunities: string[];
-        recentNews: string[];
-      }>('/api/thor/research-company', { company: companyName });
+      const { data, error: fnError } = await supabase.functions.invoke('thor-ai', {
+        body: { action: 'analyze-prospect', data: { name: '', company: companyName, position: '' } },
+      });
+      if (fnError) throw new Error(fnError.message);
+      if (data?.error) throw new Error(data.error);
+      return {
+        overview: data.approach || '',
+        challenges: data.companyInsights?.challenges || [],
+        opportunities: data.opportunities || [],
+        recentNews: data.companyInsights?.recentNews || [],
+      };
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro na pesquisa';
       setError(msg);
