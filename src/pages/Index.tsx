@@ -2,26 +2,39 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useLeads } from '@/hooks/useLeads';
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, LeadStatus } from '@/types';
-import { Users, MessageSquare, Calendar, Trophy, DollarSign, TrendingUp, Loader2 } from 'lucide-react';
+import { Users, MessageSquare, Calendar, Trophy, DollarSign, TrendingUp, Loader2, AlertCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
 
 const PIE_COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#6366f1', '#f97316', '#059669', '#ef4444'];
 
 export default function Dashboard() {
-  const { leads, isLoading } = useLeads();
+  const { leads, isLoading: leadsLoading } = useLeads();
+
+  // Try to fetch from backend API, fallback to local calculation
+  const { data: backendMetrics, isError: backendError } = useQuery({
+    queryKey: ['dashboard-overview'],
+    queryFn: () => api.getDashboardOverview(),
+    retry: 1,
+    staleTime: 30000,
+  });
+
+  const isLoading = leadsLoading;
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
-  const activeLeads = leads.filter(l => !['closed', 'lost'].includes(l.status)).length;
-  const closedDeals = leads.filter(l => l.status === 'closed').length;
-  const meetings = leads.filter(l => l.status === 'meeting').length;
-  const proposals = leads.filter(l => l.status === 'proposal').length;
-  const totalRevenue = leads.filter(l => l.status === 'closed').reduce((sum, l) => sum + (l.value || 0), 0);
-  const responseRate = leads.length > 0
+  // Use backend data if available, otherwise compute locally
+  const activeLeads = backendMetrics?.activeLeads ?? leads.filter(l => !['closed', 'lost'].includes(l.status)).length;
+  const closedDeals = backendMetrics?.closedDeals ?? leads.filter(l => l.status === 'closed').length;
+  const meetings = backendMetrics?.meetingsScheduled ?? leads.filter(l => l.status === 'meeting').length;
+  const proposals = backendMetrics?.proposalsSent ?? leads.filter(l => l.status === 'proposal').length;
+  const totalRevenue = backendMetrics?.totalRevenue ?? leads.filter(l => l.status === 'closed').reduce((sum, l) => sum + (l.value || 0), 0);
+  const responseRate = backendMetrics?.responseRate ?? (leads.length > 0
     ? Math.round((leads.filter(l => !['new'].includes(l.status)).length / leads.length) * 100)
-    : 0;
+    : 0);
 
   const statusData = Object.entries(
     leads.reduce((acc, l) => ({ ...acc, [l.status]: (acc[l.status] || 0) + 1 }), {} as Record<string, number>)
@@ -40,16 +53,28 @@ export default function Dashboard() {
     { label: 'Reuniões', value: meetings, icon: Calendar, color: 'text-violet-500' },
     { label: 'Propostas', value: proposals, icon: TrendingUp, color: 'text-orange-500' },
     { label: 'Fechados', value: closedDeals, icon: Trophy, color: 'text-emerald-600' },
-    { label: 'Receita', value: `R$ ${totalRevenue.toLocaleString('pt-BR')}`, icon: DollarSign, color: 'text-primary' },
+    { label: 'Receita', value: `R$ ${Number(totalRevenue).toLocaleString('pt-BR')}`, icon: DollarSign, color: 'text-primary' },
   ];
 
   const recentLeads = leads.slice(0, 5);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">Visão geral do pipeline de prospecção</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">Visão geral do pipeline de prospecção</p>
+        </div>
+        {!backendError && backendMetrics && (
+          <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-200">
+            🟢 Backend conectado
+          </Badge>
+        )}
+        {backendError && (
+          <Badge variant="outline" className="text-xs text-muted-foreground">
+            Dados locais
+          </Badge>
+        )}
       </div>
 
       {/* Metric Cards */}
@@ -68,7 +93,6 @@ export default function Dashboard() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Pipeline by Status */}
         <Card>
           <CardHeader><CardTitle className="text-base">Pipeline por Status</CardTitle></CardHeader>
           <CardContent>
@@ -87,7 +111,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Leads by Source */}
         <Card>
           <CardHeader><CardTitle className="text-base">Leads por Fonte</CardTitle></CardHeader>
           <CardContent>
@@ -108,7 +131,6 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Recent Leads */}
       <Card>
         <CardHeader><CardTitle className="text-base">Leads Recentes</CardTitle></CardHeader>
         <CardContent>
