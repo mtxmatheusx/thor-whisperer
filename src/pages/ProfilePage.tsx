@@ -209,23 +209,28 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {[
-                { icon: Mail, label: 'Email', value: (p.contact || FALLBACK_PROFILE.contact).email },
-                { icon: Phone, label: 'Telefone', value: (p.contact || FALLBACK_PROFILE.contact).phone },
-                { icon: Linkedin, label: 'LinkedIn', value: (p.contact || FALLBACK_PROFILE.contact).linkedin, link: true },
-                { icon: Instagram, label: 'Instagram', value: (p.contact || FALLBACK_PROFILE.contact).instagram, link: true },
-                { icon: Youtube, label: 'YouTube', value: (p.contact || FALLBACK_PROFILE.contact).youtube, link: true },
-                { icon: Globe, label: 'Website', value: (p.contact || FALLBACK_PROFILE.contact).site, link: true },
+                { icon: Mail, label: 'Email', value: (p.contact || FALLBACK_PROFILE.contact).email, href: `mailto:${(p.contact || FALLBACK_PROFILE.contact).email}` },
+                { icon: Phone, label: 'Telefone', value: (p.contact || FALLBACK_PROFILE.contact).phone, href: `tel:${(p.contact || FALLBACK_PROFILE.contact).phone.replace(/\D/g, '')}` },
+                { icon: Linkedin, label: 'LinkedIn', value: (p.contact || FALLBACK_PROFILE.contact).linkedin, href: (p.contact || FALLBACK_PROFILE.contact).linkedin },
+                { icon: Instagram, label: 'Instagram', value: (p.contact || FALLBACK_PROFILE.contact).instagram, href: (p.contact || FALLBACK_PROFILE.contact).instagram },
+                { icon: Youtube, label: 'YouTube', value: (p.contact || FALLBACK_PROFILE.contact).youtube, href: (p.contact || FALLBACK_PROFILE.contact).youtube },
+                { icon: Globe, label: 'Website', value: (p.contact || FALLBACK_PROFILE.contact).site, href: (p.contact || FALLBACK_PROFILE.contact).site },
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-3 text-sm">
                   <item.icon className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground w-20">{item.label}</span>
-                  {item.link ? (
-                    <a href={item.value?.startsWith('http') ? item.value : `https://${item.value}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                      {item.value}
-                    </a>
-                  ) : (
-                    <span>{item.value}</span>
-                  )}
+                  <a
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline break-all"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.open(item.href, '_blank', 'noopener,noreferrer');
+                    }}
+                  >
+                    {item.value}
+                  </a>
                 </div>
               ))}
             </CardContent>
