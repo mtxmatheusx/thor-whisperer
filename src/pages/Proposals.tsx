@@ -297,20 +297,19 @@ Site: ${PAULA_BIO.contact.site}`;
     URL.revokeObjectURL(url);
   };
 
-  // PDF Generation with premium branding
+  // PDF Generation — Sales Page Style with UX Design
   const handleDownloadPdf = async () => {
     if (!generatedProposal) return;
     setGeneratingPdf(true);
 
     try {
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const pageW = doc.internal.pageSize.getWidth();
-      const pageH = doc.internal.pageSize.getHeight();
-      const marginL = 22;
-      const marginR = 22;
-      const contentW = pageW - marginL - marginR;
+      const W = doc.internal.pageSize.getWidth();   // 210
+      const H = doc.internal.pageSize.getHeight();   // 297
+      const M = 18; // margin
+      const CW = W - M * 2; // content width
+      const footerH = 14;
       let y = 0;
-      const footerH = 18;
 
       // Load logo
       let logoImg: string | null = null;
@@ -324,137 +323,148 @@ Site: ${PAULA_BIO.contact.site}`;
         });
       } catch { /* logo not available */ }
 
-      // Helper: get logo aspect ratio
-      const getLogoSize = (maxW: number, maxH: number) => {
-        // Default aspect ratio ~3.5:1 for wide logos
-        const aspect = 3.5;
-        let w = maxW;
-        let h = w / aspect;
-        if (h > maxH) { h = maxH; w = h * aspect; }
+      const logoSize = (maxW: number, maxH: number) => {
+        const a = 3.5; let w = maxW; let h = w / a;
+        if (h > maxH) { h = maxH; w = h * a; }
         return { w, h };
       };
 
-      const addPage = () => {
+      // Clean text helper
+      const clean = (text: string): string => {
+        return text
+          .replace(/^\s*\{?\s*"message"\s*:\s*"?/i, '')
+          .replace(/"?\s*\}?\s*$/, '')
+          .replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\t/g, '  ')
+          .replace(/\*\*(.*?)\*\*/g, '$1')
+          .replace(/\*(.*?)\*/g, '$1')
+          .replace(/^#{1,4}\s*/gm, '');
+      };
+
+      // Rounded rect with fill (helper)
+      const roundBox = (x: number, yy: number, w: number, h: number, r: number, color: string) => {
+        doc.setFillColor(color);
+        doc.roundedRect(x, yy, w, h, r, r, 'F');
+      };
+
+      const newPage = () => {
         doc.addPage();
-        y = 12;
-        // Subtle top accent bar on continuation pages
-        doc.setFillColor(BRAND.primaryDark);
-        doc.rect(0, 0, pageW, 4, 'F');
-        doc.setDrawColor(BRAND.primary);
-        doc.setLineWidth(1);
-        doc.line(0, 4, pageW, 4);
-        y = 16;
+        y = 0;
       };
 
       const checkSpace = (needed: number) => {
-        if (y + needed > pageH - footerH - 8) addPage();
+        if (y + needed > H - footerH - 6) {
+          newPage();
+          // Mini header bar on continuation pages
+          doc.setFillColor(BRAND.primaryDark);
+          doc.rect(0, 0, W, 6, 'F');
+          doc.setFillColor(BRAND.primary);
+          doc.rect(0, 6, W, 1.5, 'F');
+          y = 14;
+        }
       };
 
-      // Clean text: remove markdown artifacts, JSON wrappers
-      const cleanText = (text: string): string => {
-        let cleaned = text;
-        // Remove JSON wrapper artifacts
-        cleaned = cleaned.replace(/^\s*\{?\s*"message"\s*:\s*"?/i, '');
-        cleaned = cleaned.replace(/"?\s*\}?\s*$/, '');
-        // Convert escaped chars
-        cleaned = cleaned.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\t/g, '  ');
-        // Remove markdown bold markers
-        cleaned = cleaned.replace(/\*\*(.*?)\*\*/g, '$1');
-        // Remove markdown italic
-        cleaned = cleaned.replace(/\*(.*?)\*/g, '$1');
-        // Remove markdown headers
-        cleaned = cleaned.replace(/^#{1,4}\s*/gm, '');
-        return cleaned;
-      };
+      // ════════════════════════════════════════════════
+      // PAGE 1 — FULL-PAGE HERO COVER (Sales Page Style)
+      // ════════════════════════════════════════════════
 
-      // ═══════════════════════════════════════════
-      // PAGE 1 — COVER HEADER
-      // ═══════════════════════════════════════════
-
-      // Full-width navy header
-      const headerH = 52;
+      // Full dark navy background
       doc.setFillColor(BRAND.primaryDark);
-      doc.rect(0, 0, pageW, headerH, 'F');
+      doc.rect(0, 0, W, H, 'F');
 
-      // Logo — large and responsive
+      // Decorative copper diagonal stripe (top-right)
+      doc.setFillColor(BRAND.primary);
+      doc.triangle(W - 60, 0, W, 0, W, 45, 'F');
+
+      // Decorative copper diagonal stripe (bottom-left)
+      doc.triangle(0, H - 45, 0, H, 60, H, 'F');
+
+      // Logo — centered, large
       if (logoImg) {
-        const logo = getLogoSize(55, 20);
-        doc.addImage(logoImg, 'PNG', marginL, (headerH - logo.h) / 2 - 4, logo.w, logo.h);
+        const logo = logoSize(80, 28);
+        doc.addImage(logoImg, 'PNG', (W - logo.w) / 2, 50, logo.w, logo.h);
       }
 
-      // Title block — right aligned
-      doc.setTextColor('#FFFFFF');
-      doc.setFontSize(24);
-      doc.setFont('helvetica', 'bold');
-      doc.text('PROPOSTA COMERCIAL', pageW - marginR, headerH / 2 - 4, { align: 'right' });
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(BRAND.primary);
-      doc.text('Paula Pimenta  •  Palestrante & Mentora', pageW - marginR, headerH / 2 + 5, { align: 'right' });
-
-      // Copper accent line below header
+      // Copper divider line
       doc.setDrawColor(BRAND.primary);
-      doc.setLineWidth(2);
-      doc.line(0, headerH, pageW, headerH);
+      doc.setLineWidth(1.5);
+      doc.line(W / 2 - 30, 90, W / 2 + 30, 90);
 
-      y = headerH + 12;
-
-      // ═══════════════════════════════════════════
-      // CLIENT INFO BOX
-      // ═══════════════════════════════════════════
-      const clientBoxH = 38;
-      // Light background box
-      doc.setFillColor(245, 240, 235); // BRAND.light
-      doc.roundedRect(marginL, y, contentW, clientBoxH, 3, 3, 'F');
-      // Left copper accent bar
-      doc.setFillColor(BRAND.primary);
-      doc.rect(marginL, y, 3, clientBoxH, 'F');
-
-      const infoX = marginL + 10;
-      let infoY = y + 8;
-
-      doc.setTextColor(BRAND.primary);
-      doc.setFontSize(10);
+      // "PROPOSTA COMERCIAL" — large title
+      doc.setTextColor('#FFFFFF');
+      doc.setFontSize(32);
       doc.setFont('helvetica', 'bold');
-      doc.text('DADOS DO CLIENTE', infoX, infoY);
-      infoY += 6;
+      doc.text('PROPOSTA', W / 2, 112, { align: 'center' });
+      doc.setTextColor(BRAND.primary);
+      doc.text('COMERCIAL', W / 2, 124, { align: 'center' });
 
-      doc.setTextColor(BRAND.text);
-      doc.setFontSize(9);
+      // Subtitle
+      doc.setTextColor('#FFFFFF');
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
+      doc.text('Palestrante  •  Executiva  •  Mentora G4 Educação', W / 2, 138, { align: 'center' });
 
-      const clientFields = [
-        { label: 'Para', value: proposal.clientName },
-        { label: 'Empresa', value: proposal.clientCompany },
-        { label: 'Evento', value: proposal.eventName || 'A definir' },
-        { label: 'Data', value: proposal.eventDate || 'A definir' },
-        { label: 'Local', value: proposal.eventLocation || 'A definir' },
-        { label: 'Público', value: proposal.audience || 'Executivos' },
-      ];
+      // Client info block — centered card on cover
+      const cardW = 130;
+      const cardH = 50;
+      const cardX = (W - cardW) / 2;
+      const cardY = 160;
+      roundBox(cardX, cardY, cardW, cardH, 4, '#FFFFFF');
 
-      // Render in 2 columns
-      const col1X = infoX;
-      const col2X = infoX + contentW / 2 - 5;
-      clientFields.forEach((field, idx) => {
-        const colX = idx < 3 ? col1X : col2X;
-        const rowY = infoY + (idx % 3) * 6;
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(BRAND.muted);
-        doc.text(`${field.label}:`, colX, rowY);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(BRAND.text);
-        doc.text(field.value, colX + doc.getTextWidth(`${field.label}: `) + 1, rowY);
-      });
+      // Left copper accent bar inside card
+      doc.setFillColor(BRAND.primary);
+      doc.rect(cardX, cardY, 4, cardH, 'F');
 
-      y += clientBoxH + 10;
+      doc.setTextColor(BRAND.primaryDark);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text('PREPARADA PARA', cardX + 12, cardY + 10);
 
-      // ═══════════════════════════════════════════
-      // PROPOSAL BODY — cleaned and formatted
-      // ═══════════════════════════════════════════
-      const cleaned = cleanText(generatedProposal);
-      const lines = cleaned.split('\n');
+      doc.setFontSize(14);
+      doc.setTextColor(BRAND.primaryDark);
+      doc.text(proposal.clientName, cardX + 12, cardY + 20);
+      doc.setFontSize(11);
+      doc.setTextColor(BRAND.muted);
+      doc.text(proposal.clientCompany, cardX + 12, cardY + 28);
 
-      // Skip lines already rendered in header/client box
+      doc.setFontSize(8);
+      doc.setTextColor(BRAND.muted);
+      const eventLine = [
+        proposal.eventDate || 'Data a definir',
+        proposal.eventLocation || 'Local a definir',
+      ].join('  •  ');
+      doc.text(eventLine, cardX + 12, cardY + 36);
+
+      if (proposal.eventName) {
+        doc.setFontSize(8);
+        doc.text(proposal.eventName, cardX + 12, cardY + 43);
+      }
+
+      // Bottom copper bar
+      doc.setFillColor(BRAND.primary);
+      doc.rect(0, H - 8, W, 8, 'F');
+
+      // Footer text on cover
+      doc.setTextColor('#FFFFFF');
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${PAULA_BIO.contact.email}  •  ${PAULA_BIO.contact.phone}  •  ${PAULA_BIO.contact.site}`, W / 2, H - 14, { align: 'center' });
+
+      // ════════════════════════════════════════════════
+      // PAGE 2+ — CONTENT PAGES (Sales Page Sections)
+      // ════════════════════════════════════════════════
+      newPage();
+
+      // Top bar
+      doc.setFillColor(BRAND.primaryDark);
+      doc.rect(0, 0, W, 6, 'F');
+      doc.setFillColor(BRAND.primary);
+      doc.rect(0, 6, W, 1.5, 'F');
+      y = 14;
+
+      // Parse content into sections
+      const cleaned = clean(generatedProposal);
+      const allLines = cleaned.split('\n');
+
       const skipPatterns = [
         /^═+$/, /^─+$/, /^PROPOSTA COMERCIAL$/i, /^Paula Pimenta$/i,
         /^Para:/i, /^Empresa:/i, /^Evento:/i, /^Data:/i, /^Local:/i, /^Público:/i,
@@ -464,161 +474,259 @@ Site: ${PAULA_BIO.contact.site}`;
       const isSectionHeader = (line: string) => {
         const t = line.trim();
         if (!t || t.length < 4) return false;
-        // ALL CAPS lines (excluding bullets)
         if (t === t.toUpperCase() && !t.startsWith('•') && !t.startsWith('✓') && !t.startsWith('-') && !/^\d/.test(t)) return true;
-        // Lines ending with colon that look like headers
         if (t.endsWith(':') && t.length < 60 && !t.includes('.')) return true;
         return false;
       };
 
-      for (const line of lines) {
+      let sectionIndex = 0;
+      const sectionColors = ['#F8F4EF', '#EDF2FA', '#FFF8F0', '#F0F8F4']; // alternating backgrounds
+
+      for (const line of allLines) {
         const trimmed = line.trim();
         if (!trimmed) { y += 2; continue; }
-
-        // Skip already-rendered content
         if (skipPatterns.some(p => p.test(trimmed))) continue;
 
-        // ── Section Header ──
+        // ── SECTION HEADER — styled card-like block ──
         if (isSectionHeader(trimmed)) {
-          checkSpace(14);
-          y += 4;
-          // Copper left accent
+          checkSpace(18);
+          y += 3;
+
+          // Section background stripe
+          const bgColor = sectionColors[sectionIndex % sectionColors.length];
+          doc.setFillColor(bgColor);
+          doc.rect(0, y - 5, W, 14, 'F');
+
+          // Copper left accent bar
           doc.setFillColor(BRAND.primary);
-          doc.rect(marginL, y - 3.5, 2, 5, 'F');
+          doc.rect(M - 2, y - 4, 3, 12, 'F');
+
+          // Section title
           doc.setTextColor(BRAND.primaryDark);
-          doc.setFontSize(11);
+          doc.setFontSize(12);
           doc.setFont('helvetica', 'bold');
-          doc.text(trimmed, marginL + 6, y);
-          y += 8;
+          doc.text(trimmed, M + 6, y + 3);
+
+          // Thin copper underline
+          doc.setDrawColor(BRAND.primary);
+          doc.setLineWidth(0.4);
+          doc.line(M + 6, y + 6, M + 6 + Math.min(doc.getTextWidth(trimmed), CW - 10), y + 6);
+
+          y += 14;
+          sectionIndex++;
           continue;
         }
 
-        // ── Bullet / check items ──
+        // ── BULLET / CHECK / NUMBERED ITEMS — icon-style ──
         if (trimmed.startsWith('•') || trimmed.startsWith('✓') || trimmed.startsWith('-') || /^\d+\.\s/.test(trimmed)) {
-          checkSpace(7);
+          checkSpace(8);
+          const textContent = trimmed.replace(/^[•✓\-]\s*/, '').replace(/^\d+\.\s*/, '');
+          const isCheck = trimmed.startsWith('✓');
+          const isNumbered = /^\d+\.\s/.test(trimmed);
+          const numberMatch = trimmed.match(/^(\d+)\./);
+
+          // Copper circle bullet or number
+          const bulletX = M + 4;
+          if (isNumbered && numberMatch) {
+            // Copper circle with number
+            doc.setFillColor(BRAND.primary);
+            doc.circle(bulletX, y - 1, 2.5, 'F');
+            doc.setTextColor('#FFFFFF');
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'bold');
+            doc.text(numberMatch[1], bulletX, y, { align: 'center' });
+          } else {
+            // Copper dot or check
+            doc.setFillColor(BRAND.primary);
+            if (isCheck) {
+              doc.circle(bulletX, y - 1, 2, 'F');
+              doc.setTextColor('#FFFFFF');
+              doc.setFontSize(7);
+              doc.setFont('helvetica', 'bold');
+              doc.text('✓', bulletX, y, { align: 'center' });
+            } else {
+              doc.circle(bulletX, y - 1, 1.2, 'F');
+            }
+          }
+
+          // Bullet text
           doc.setTextColor(BRAND.text);
           doc.setFontSize(9);
           doc.setFont('helvetica', 'normal');
-
-          // Use copper bullet
-          const bulletChar = trimmed.startsWith('✓') ? '✓' : '•';
-          const textContent = trimmed.replace(/^[•✓\-]\s*/, '').replace(/^\d+\.\s*/, '');
-
-          doc.setTextColor(BRAND.primary);
-          doc.setFontSize(9);
-          doc.text(bulletChar, marginL + 3, y);
-          doc.setTextColor(BRAND.text);
-          const bulletWrapped = doc.splitTextToSize(textContent, contentW - 10);
-          bulletWrapped.forEach((bl: string, idx: number) => {
+          const bulletWrapped = doc.splitTextToSize(textContent, CW - 14);
+          bulletWrapped.forEach((bl: string) => {
             checkSpace(5);
-            doc.text(bl, marginL + 8, y);
+            doc.text(bl, M + 10, y);
             y += 4.5;
           });
-          y += 1;
+          y += 2;
           continue;
         }
 
-        // ── Regular paragraph text ──
+        // ── REGULAR PARAGRAPH — with proper line-height ──
         checkSpace(6);
         doc.setTextColor(BRAND.text);
-        doc.setFontSize(9);
+        doc.setFontSize(9.5);
         doc.setFont('helvetica', 'normal');
-        const wrapped = doc.splitTextToSize(trimmed, contentW);
+        const wrapped = doc.splitTextToSize(trimmed, CW);
         wrapped.forEach((wl: string) => {
           checkSpace(5);
-          doc.text(wl, marginL, y);
-          y += 4.5;
+          doc.text(wl, M, y);
+          y += 5;
         });
-        y += 1;
+        y += 2;
       }
 
-      // ═══════════════════════════════════════════
-      // INVESTMENT BOX (if not already in content)
-      // ═══════════════════════════════════════════
-      checkSpace(40);
-      y += 4;
-      const investBoxH = 32;
-      doc.setFillColor(BRAND.primaryDark);
-      doc.roundedRect(marginL, y, contentW, investBoxH, 3, 3, 'F');
-
-      doc.setTextColor('#FFFFFF');
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text('INVESTIMENTO', marginL + 8, y + 8);
-
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Formato: ${selectedFormat?.label} (${selectedFormat?.duration})`, marginL + 8, y + 15);
-
-      doc.setTextColor(BRAND.primary);
-      doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`R$ ${selectedFormat?.price.toLocaleString('pt-BR')},00`, pageW - marginR - 8, y + 14, { align: 'right' });
-
-      doc.setTextColor('#FFFFFF');
-      doc.setFontSize(7.5);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Inclui: Conteúdo autoral  •  Presença integral + assessor  •  Apoio logístico', marginL + 8, y + 22);
-      doc.text('NF em até 5 dias  •  Pgto: 30 dias  •  Deslocamento por conta da contratante', marginL + 8, y + 27);
-
-      y += investBoxH + 8;
-
-      // ═══════════════════════════════════════════
-      // CONTACT STRIP
-      // ═══════════════════════════════════════════
-      checkSpace(20);
-      doc.setDrawColor(BRAND.primary);
-      doc.setLineWidth(0.5);
-      doc.line(marginL, y, pageW - marginR, y);
+      // ════════════════════════════════════════════════
+      // INVESTMENT — Premium CTA Section (Sales-page style)
+      // ════════════════════════════════════════════════
+      checkSpace(65);
       y += 6;
 
+      // Full-width dark section background
+      const investStartY = y - 4;
+      const investH = 55;
+      doc.setFillColor(BRAND.primaryDark);
+      doc.rect(0, investStartY, W, investH, 'F');
+
+      // Copper top accent
+      doc.setFillColor(BRAND.primary);
+      doc.rect(0, investStartY, W, 2, 'F');
+
+      // "INVESTIMENTO" label
       doc.setTextColor(BRAND.primary);
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
-      doc.text('CONTATO', marginL, y);
+      doc.text('INVESTIMENTO', M, investStartY + 12);
+
+      // Price — large, copper
+      doc.setTextColor(BRAND.primary);
+      doc.setFontSize(28);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`R$ ${selectedFormat?.price.toLocaleString('pt-BR')},00`, M, investStartY + 25);
+
+      // Format details
+      doc.setTextColor('#FFFFFF');
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${selectedFormat?.label}  •  ${selectedFormat?.duration}`, M, investStartY + 33);
+
+      // Includes — right column
+      const incX = W / 2 + 5;
+      doc.setTextColor('#FFFFFF');
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.text('INCLUI:', incX, investStartY + 12);
+
+      const includes = [
+        'Conteúdo autoral e personalizado',
+        'Presença integral + assessor',
+        'Apoio à condução e logística',
+      ];
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      includes.forEach((item, i) => {
+        doc.setTextColor(BRAND.primary);
+        doc.text('●', incX, investStartY + 18 + i * 5);
+        doc.setTextColor('#FFFFFF');
+        doc.text(item, incX + 4, investStartY + 18 + i * 5);
+      });
+
+      // Conditions — bottom of invest section
+      doc.setTextColor('#AAAAAA');
+      doc.setFontSize(7);
+      doc.text('NF em até 5 dias  •  Pgto: 30 dias  •  Deslocamento por conta da contratante', M, investStartY + 48);
+
+      // Copper bottom accent
+      doc.setFillColor(BRAND.primary);
+      doc.rect(0, investStartY + investH - 2, W, 2, 'F');
+
+      y = investStartY + investH + 8;
+
+      // ════════════════════════════════════════════════
+      // ABOUT — Bio strip
+      // ════════════════════════════════════════════════
+      checkSpace(35);
+      roundBox(M, y, CW, 28, 3, '#F8F4EF');
+
+      // Photo placeholder circle
+      doc.setFillColor(BRAND.primary);
+      doc.circle(M + 12, y + 14, 8, 'F');
+      doc.setTextColor('#FFFFFF');
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('PP', M + 12, y + 16, { align: 'center' });
+
+      // Bio text
+      doc.setTextColor(BRAND.primaryDark);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Paula Pimenta', M + 25, y + 8);
+      doc.setTextColor(BRAND.muted);
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'normal');
+      const bioWrapped = doc.splitTextToSize(PAULA_BIO.summary, CW - 30);
+      bioWrapped.slice(0, 3).forEach((bl: string, i: number) => {
+        doc.text(bl, M + 25, y + 14 + i * 3.5);
+      });
+
+      y += 34;
+
+      // ════════════════════════════════════════════════
+      // CONTACT — Final CTA
+      // ════════════════════════════════════════════════
+      checkSpace(22);
+
+      doc.setDrawColor(BRAND.primary);
+      doc.setLineWidth(0.5);
+      doc.line(M, y, W - M, y);
+      y += 6;
+
+      doc.setTextColor(BRAND.primaryDark);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Vamos conversar?', M, y);
       y += 5;
 
       doc.setTextColor(BRAND.muted);
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
-      const contactLine = `${PAULA_BIO.contact.email}  •  ${PAULA_BIO.contact.phone}  •  ${PAULA_BIO.contact.site}  •  LinkedIn: paulavaliopimenta`;
-      doc.text(contactLine, marginL, y);
+      doc.text(`${PAULA_BIO.contact.email}  •  ${PAULA_BIO.contact.phone}  •  ${PAULA_BIO.contact.site}  •  LinkedIn: paulavaliopimenta`, M, y);
 
-      // ═══════════════════════════════════════════
-      // FOOTER on every page
-      // ═══════════════════════════════════════════
+      // ════════════════════════════════════════════════
+      // FOOTER — all pages (except cover)
+      // ════════════════════════════════════════════════
       const totalPages = doc.getNumberOfPages();
       for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
 
-        // Navy footer bar
+        if (i === 1) continue; // Cover has its own footer
+
+        // Slim navy footer
         doc.setFillColor(BRAND.primaryDark);
-        doc.rect(0, pageH - footerH, pageW, footerH, 'F');
+        doc.rect(0, H - footerH, W, footerH, 'F');
+        doc.setFillColor(BRAND.primary);
+        doc.rect(0, H - footerH, W, 0.8, 'F');
 
-        // Copper line on top of footer
-        doc.setDrawColor(BRAND.primary);
-        doc.setLineWidth(1);
-        doc.line(0, pageH - footerH, pageW, pageH - footerH);
-
-        // Small logo in footer
+        // Logo in footer
         if (logoImg) {
-          const fLogo = getLogoSize(28, 8);
-          doc.addImage(logoImg, 'PNG', marginL, pageH - footerH / 2 - fLogo.h / 2, fLogo.w, fLogo.h);
+          const fLogo = logoSize(22, 6);
+          doc.addImage(logoImg, 'PNG', M, H - footerH / 2 - fLogo.h / 2, fLogo.w, fLogo.h);
         }
 
-        // Contact info
+        // Contact
         doc.setTextColor('#FFFFFF');
-        doc.setFontSize(7);
+        doc.setFontSize(6.5);
         doc.setFont('helvetica', 'normal');
         doc.text(
           `${PAULA_BIO.contact.email}  |  ${PAULA_BIO.contact.phone}  |  ${PAULA_BIO.contact.site}`,
-          pageW / 2, pageH - footerH / 2 + 1, { align: 'center' }
+          W / 2, H - footerH / 2 + 1, { align: 'center' }
         );
 
         // Page number
         doc.setTextColor(BRAND.primary);
-        doc.setFontSize(8);
-        doc.text(`${i} / ${totalPages}`, pageW - marginR, pageH - footerH / 2 + 1, { align: 'right' });
+        doc.setFontSize(7);
+        doc.text(`${i} / ${totalPages}`, W - M, H - footerH / 2 + 1, { align: 'right' });
       }
 
       doc.save(`Proposta_${proposal.clientCompany.replace(/\s/g, '_') || 'Palestra'}_Paula_Pimenta.pdf`);
