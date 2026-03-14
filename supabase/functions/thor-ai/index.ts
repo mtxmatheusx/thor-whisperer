@@ -55,7 +55,7 @@ Cargo: ${data.position}
 ${data.industry ? `Indústria: ${data.industry}` : ""}
 ${data.linkedin ? `LinkedIn: ${data.linkedin}` : ""}
 
-Contexto: Paula Pimenta é palestrante executiva com 25+ anos em multinacionais (Natura, Danone, Unilever), especialista em Liderança, CX e Empoderamento Feminino. Formatos: Palestra (R$10k), Keynote (R$10k), Workshop (R$20k), Programa (R$35k).`;
+Contexto: Paula Pimenta é palestrante executiva com 25+ anos em multinacionais (Natura, Danone, Unilever), especialista em Liderança, Autoliderança, Gestão de Pessoas e Empoderamento Feminino. Formatos: Palestra (R$10k), Keynote (R$10k), Workshop (R$20k), Programa (R$35k).`;
 
     } else if (action === "generate-message") {
       const lead = data.lead;
