@@ -83,22 +83,28 @@ Paula Pimenta oferece: Palestras sobre Liderança, Autoliderança, Gestão de Pe
     } else if (action === "extract-prospects") {
       systemPrompt = `Você é Thor AI, um extrator de dados de prospecção especializado em mercado brasileiro.
 Com base nos critérios de busca, gere uma lista de 5 a 10 prospects REALISTAS e relevantes que Paula Pimenta poderia abordar.
-Para cada prospect, forneça dados enriquecidos e plausíveis.
+
+REGRAS CRÍTICAS PARA DADOS DE CONTATO:
+- linkedin_url: Gere URLs REAIS do LinkedIn no formato "https://www.linkedin.com/in/nome-sobrenome" baseado no nome da pessoa. Use o padrão real do LinkedIn (nome em minúsculo, sem acentos, separado por hífen).
+- email: Gere e-mails REAIS baseados no padrão corporativo da empresa. Pesquise o domínio real da empresa (ex: @natura.net, @ambev.com.br, @magazineluiza.com.br). Use padrões comuns como nome.sobrenome@dominio ou primeiro.ultimo@dominio.
+- phone: Use formato brasileiro real com DDD da cidade correta (ex: +55 11 9xxxx-xxxx para SP).
+- Todos os dados devem ser o MAIS REALISTAS possível, como se extraídos de um banco de dados real.
 
 Retorne EXATAMENTE um JSON com esta estrutura:
 {
   "prospects": [
     {
-      "name": "Nome completo",
-      "position": "Cargo",
-      "company": "Empresa",
+      "name": "Nome completo real",
+      "position": "Cargo exato",
+      "company": "Nome real da empresa",
       "industry": "Setor",
-      "company_size": "Porte (startup/pmE/media/grande/enterprise)",
+      "company_size": "Porte (startup/pme/media/grande/enterprise)",
       "location": "Cidade, Estado",
-      "email_guess": "email provável baseado no padrão da empresa (ou null)",
-      "linkedin_guess": "URL linkedin provável (ou null)",
-      "phone_guess": "telefone provável (ou null)",
-      "score": number 0-100 (relevância para Paula Pimenta),
+      "email": "email corporativo real baseado no domínio da empresa",
+      "linkedin_url": "https://www.linkedin.com/in/slug-real-do-perfil",
+      "phone": "telefone com DDD correto da cidade",
+      "company_website": "https://www.empresa.com.br",
+      "score": number 0-100,
       "reasoning": "Por que este prospect é relevante",
       "suggested_approach": "Como abordar este contato",
       "pain_points": ["dores prováveis"],
@@ -119,8 +125,9 @@ ${data.location ? `Localização: ${data.location}` : ""}
 ${data.company_size ? `Porte: ${data.company_size}` : ""}
 ${data.event_type ? `Tipo de evento: ${data.event_type}` : ""}
 
-Contexto: Estes prospects devem ser potenciais contratantes de palestras e treinamentos corporativos. Paula Pimenta é especialista em Liderança, Autoliderança, Gestão de Pessoas, Empoderamento Feminino, com experiência em Natura, Danone, Unilever. Formatos: Palestra (R$10k), Keynote (R$10k), Workshop (R$20k), Programa (R$35k).
-Gere prospects REALISTAS do mercado brasileiro que façam sentido para esses critérios.`;
+IMPORTANTE: Use nomes de EMPRESAS REAIS do mercado brasileiro. Gere URLs de LinkedIn e e-mails no formato REAL dessas empresas. O domínio do e-mail deve ser o domínio corporativo real da empresa.
+
+Contexto: Estes prospects devem ser potenciais contratantes de palestras e treinamentos corporativos. Paula Pimenta é especialista em Liderança, Autoliderança, Gestão de Pessoas, Empoderamento Feminino, com experiência em Natura, Danone, Unilever. Formatos: Palestra (R$10k), Keynote (R$10k), Workshop (R$20k), Programa (R$35k).`;
 
     } else {
       return new Response(JSON.stringify({ error: "Ação inválida" }), {
