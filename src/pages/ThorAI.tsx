@@ -316,20 +316,25 @@ export default function ThorAIPage() {
                           {p.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {p.location}</span>}
                           {p.company_size && <Badge variant="secondary" className="text-[10px] h-4">{p.company_size}</Badge>}
                         </div>
-                        <div className="flex items-center gap-3 text-xs">
-                          {p.email_guess && (
-                            <button onClick={() => handleCopy(p.email_guess)} className="flex items-center gap-1 text-primary hover:underline">
-                              <Mail className="h-3 w-3" /> {p.email_guess}
-                            </button>
+                        <div className="flex items-center gap-3 text-xs flex-wrap">
+                          {(p.email || p.email_guess) && (
+                            <a href={`mailto:${p.email || p.email_guess}`} className="flex items-center gap-1 text-primary hover:underline">
+                              <Mail className="h-3 w-3" /> {p.email || p.email_guess}
+                            </a>
                           )}
-                          {p.phone_guess && (
-                            <button onClick={() => handleCopy(p.phone_guess)} className="flex items-center gap-1 text-primary hover:underline">
-                              <Phone className="h-3 w-3" /> {p.phone_guess}
-                            </button>
+                          {(p.phone || p.phone_guess) && (
+                            <a href={`tel:${(p.phone || p.phone_guess).replace(/\s/g, '')}`} className="flex items-center gap-1 text-primary hover:underline">
+                              <Phone className="h-3 w-3" /> {p.phone || p.phone_guess}
+                            </a>
                           )}
-                          {p.linkedin_guess && (
-                            <a href={p.linkedin_guess} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline">
+                          {(p.linkedin_url || p.linkedin_guess) && (
+                            <a href={p.linkedin_url || p.linkedin_guess} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline">
                               <Linkedin className="h-3 w-3" /> LinkedIn
+                            </a>
+                          )}
+                          {p.company_website && (
+                            <a href={p.company_website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline">
+                              <Building2 className="h-3 w-3" /> Site
                             </a>
                           )}
                         </div>
