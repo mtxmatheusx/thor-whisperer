@@ -42,12 +42,12 @@ const FALLBACK_PROFILE = {
   ],
   services: ['Palestras', 'Mentorias', 'Imersões', 'Aulas Gravadas', 'Ferramentas Práticas', 'E-books'],
   contact: {
-    email: 'paula@paulapimenta.com.br',
-    phone: '(11) 99999-9999',
-    linkedin: 'https://linkedin.com/in/paulavaliopimenta',
-    instagram: '@paulavaliopimenta',
-    youtube: 'https://youtube.com/@paulapimenta',
-    site: 'paulavaliopimenta.com.br',
+    email: 'pimentpa@gmail.com',
+    phone: '(51) 99144-3171',
+    linkedin: 'https://www.linkedin.com/in/paula-valio-pimenta/',
+    instagram: 'https://www.instagram.com/paulavaliopimenta/',
+    youtube: 'https://www.youtube.com/@paulavaliopimenta',
+    site: 'https://paulavaliopimenta.com.br/',
   },
 };
 
