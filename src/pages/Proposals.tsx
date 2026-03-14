@@ -24,8 +24,8 @@ const PAULA_BIO = {
   achievements: [
     'Eleita Executiva do Ano 2020 pela ABT',
     'Premiada pela PUC como Liderança em 2021',
-    '10+ premiações em Customer Experience (EXAME, Consumidor Moderno, Reclame Aqui, ABT)',
-    'LinkedIn Creator: Top Voice CX & Business Strategy',
+     '10+ premiações em Liderança e Gestão (EXAME, Consumidor Moderno, Reclame Aqui, ABT)',
+     'LinkedIn Creator: Top Voice Business Strategy',
     'Membro do IBGC',
     'Co-autora do livro "A Liderança Desafiada"',
     'Coach pela Sociedade Latino-Americana de Coaching',
