@@ -28,7 +28,7 @@ const FALLBACK_PROFILE = {
   ],
   themes: [
     { id: 'lideranca', name: 'Liderança Transformadora', description: 'Como desenvolver líderes que inspiram e entregam resultados' },
-    { id: 'cx', name: 'Customer Experience', description: 'Estratégias para criar experiências memoráveis' },
+    { id: 'autolideranca', name: 'Autoliderança', description: 'Como liderar a si mesmo para alcançar resultados extraordinários' },
     { id: 'mulheres', name: 'Mulheres na Liderança', description: 'Diversidade e empoderamento feminino no mundo corporativo' },
     { id: 'inovacao', name: 'Inovação e Transformação', description: 'Como liderar em tempos de mudança acelerada' },
     { id: 'carreira', name: 'Carreira e Propósito', description: 'Construindo uma carreira de impacto com autenticidade' },

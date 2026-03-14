@@ -46,7 +46,7 @@ const PAULA_BIO = {
 
 const TALK_THEMES = [
   { id: 'lideranca', label: 'Liderança Transformadora', desc: 'Como desenvolver líderes que inspiram e entregam resultados' },
-  { id: 'cx', label: 'Customer Experience', desc: 'Estratégias para criar experiências memoráveis' },
+  { id: 'autolideranca', label: 'Autoliderança', desc: 'Como liderar a si mesmo para alcançar resultados extraordinários' },
   { id: 'mulheres', label: 'Mulheres na Liderança', desc: 'Diversidade e empoderamento feminino no mundo corporativo' },
   { id: 'inovacao', label: 'Inovação e Transformação', desc: 'Como liderar em tempos de mudança acelerada' },
   { id: 'carreira', label: 'Carreira e Propósito', desc: 'Construindo uma carreira de impacto com autenticidade' },

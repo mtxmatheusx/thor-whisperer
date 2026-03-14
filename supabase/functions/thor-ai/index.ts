@@ -119,7 +119,7 @@ ${data.location ? `Localização: ${data.location}` : ""}
 ${data.company_size ? `Porte: ${data.company_size}` : ""}
 ${data.event_type ? `Tipo de evento: ${data.event_type}` : ""}
 
-Contexto: Estes prospects devem ser potenciais contratantes de palestras e treinamentos corporativos. Paula Pimenta é especialista em Liderança, CX, Empoderamento Feminino, com experiência em Natura, Danone, Unilever. Formatos: Palestra (R$10k), Keynote (R$10k), Workshop (R$20k), Programa (R$35k).
+Contexto: Estes prospects devem ser potenciais contratantes de palestras e treinamentos corporativos. Paula Pimenta é especialista em Liderança, Autoliderança, Gestão de Pessoas, Empoderamento Feminino, com experiência em Natura, Danone, Unilever. Formatos: Palestra (R$10k), Keynote (R$10k), Workshop (R$20k), Programa (R$35k).
 Gere prospects REALISTAS do mercado brasileiro que façam sentido para esses critérios.`;
 
     } else {
