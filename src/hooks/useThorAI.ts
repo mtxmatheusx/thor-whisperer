@@ -77,5 +77,51 @@ export function useThorAI() {
     }
   }, []);
 
-  return { analyzing, generating, error, analyzeProspect, generateMessage, researchCompany };
+  const extractProspects = useCallback(async (filters: {
+    query?: string;
+    industry?: string;
+    position?: string;
+    company?: string;
+    location?: string;
+    company_size?: string;
+    event_type?: string;
+  }) => {
+    setAnalyzing(true);
+    setError(null);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('thor-ai', {
+        body: { action: 'extract-prospects', data: filters },
+      });
+      if (fnError) throw new Error(fnError.message);
+      if (data?.error) throw new Error(data.error);
+      return data as {
+        prospects: Array<{
+          name: string;
+          position: string;
+          company: string;
+          industry: string;
+          company_size: string;
+          location: string;
+          email_guess: string | null;
+          linkedin_guess: string | null;
+          phone_guess: string | null;
+          score: number;
+          reasoning: string;
+          suggested_approach: string;
+          pain_points: string[];
+          events_potential: string[];
+        }>;
+        search_summary: string;
+        total_found: number;
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro na extração';
+      setError(msg);
+      throw err;
+    } finally {
+      setAnalyzing(false);
+    }
+  }, []);
+
+  return { analyzing, generating, error, analyzeProspect, generateMessage, researchCompany, extractProspects };
 }
