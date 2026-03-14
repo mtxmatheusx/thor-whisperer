@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import {
   FileText, User, Award, Mail, Phone, Linkedin, Instagram,
   Calendar, Clock, MapPin, DollarSign, Download, Eye, Send, Sparkles, Globe, Loader2, Brain
