@@ -80,6 +80,48 @@ ${data.customInstructions ? `Instruções adicionais: ${data.customInstructions}
 
 Paula Pimenta oferece: Palestras sobre Liderança, CX, Mulheres na Liderança, Inovação. Formatos: Palestra 60min (R$10k), Keynote 45min (R$10k), Workshop 2h (R$20k), Programa 4 módulos (R$35k).`;
 
+    } else if (action === "extract-prospects") {
+      systemPrompt = `Você é Thor AI, um extrator de dados de prospecção especializado em mercado brasileiro.
+Com base nos critérios de busca, gere uma lista de 5 a 10 prospects REALISTAS e relevantes que Paula Pimenta poderia abordar.
+Para cada prospect, forneça dados enriquecidos e plausíveis.
+
+Retorne EXATAMENTE um JSON com esta estrutura:
+{
+  "prospects": [
+    {
+      "name": "Nome completo",
+      "position": "Cargo",
+      "company": "Empresa",
+      "industry": "Setor",
+      "company_size": "Porte (startup/pmE/media/grande/enterprise)",
+      "location": "Cidade, Estado",
+      "email_guess": "email provável baseado no padrão da empresa (ou null)",
+      "linkedin_guess": "URL linkedin provável (ou null)",
+      "phone_guess": "telefone provável (ou null)",
+      "score": number 0-100 (relevância para Paula Pimenta),
+      "reasoning": "Por que este prospect é relevante",
+      "suggested_approach": "Como abordar este contato",
+      "pain_points": ["dores prováveis"],
+      "events_potential": ["tipos de eventos que pode contratar"]
+    }
+  ],
+  "search_summary": "Resumo da busca realizada",
+  "total_found": number
+}
+Retorne SOMENTE o JSON, sem markdown, sem explicações.`;
+
+      userPrompt = `Extraia prospects com os seguintes critérios:
+${data.query ? `Busca livre: ${data.query}` : ""}
+${data.industry ? `Setor/Indústria: ${data.industry}` : ""}
+${data.position ? `Cargo/Função: ${data.position}` : ""}
+${data.company ? `Empresa: ${data.company}` : ""}
+${data.location ? `Localização: ${data.location}` : ""}
+${data.company_size ? `Porte: ${data.company_size}` : ""}
+${data.event_type ? `Tipo de evento: ${data.event_type}` : ""}
+
+Contexto: Estes prospects devem ser potenciais contratantes de palestras e treinamentos corporativos. Paula Pimenta é especialista em Liderança, CX, Empoderamento Feminino, com experiência em Natura, Danone, Unilever. Formatos: Palestra (R$10k), Keynote (R$10k), Workshop (R$20k), Programa (R$35k).
+Gere prospects REALISTAS do mercado brasileiro que façam sentido para esses critérios.`;
+
     } else {
       return new Response(JSON.stringify({ error: "Ação inválida" }), {
         status: 400,
