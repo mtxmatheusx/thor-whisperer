@@ -212,7 +212,7 @@ export default function ProfilePage() {
                 { icon: Mail, label: 'Email', value: (p.contact || FALLBACK_PROFILE.contact).email },
                 { icon: Phone, label: 'Telefone', value: (p.contact || FALLBACK_PROFILE.contact).phone },
                 { icon: Linkedin, label: 'LinkedIn', value: (p.contact || FALLBACK_PROFILE.contact).linkedin, link: true },
-                { icon: Instagram, label: 'Instagram', value: (p.contact || FALLBACK_PROFILE.contact).instagram },
+                { icon: Instagram, label: 'Instagram', value: (p.contact || FALLBACK_PROFILE.contact).instagram, link: true },
                 { icon: Youtube, label: 'YouTube', value: (p.contact || FALLBACK_PROFILE.contact).youtube, link: true },
                 { icon: Globe, label: 'Website', value: (p.contact || FALLBACK_PROFILE.contact).site, link: true },
               ].map((item, i) => (
