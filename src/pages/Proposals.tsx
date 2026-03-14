@@ -36,8 +36,8 @@ const PAULA_BIO = {
     'Pós-graduação Gestão da Qualidade e Inovação — Mackenzie University',
   ],
   contact: {
-    email: 'pimentpa@hotmail.com',
-    phone: '(11) 94312-6169',
+    email: 'paula@paulapimenta.com.br',
+    phone: '(11) 99999-9999',
     linkedin: 'https://linkedin.com/in/paulavaliopimenta',
     instagram: '@paulavaliopimenta',
     site: 'paulavaliopimenta.com.br',
