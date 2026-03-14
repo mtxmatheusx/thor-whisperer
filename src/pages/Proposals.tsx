@@ -24,8 +24,8 @@ const PAULA_BIO = {
   achievements: [
     'Eleita Executiva do Ano 2020 pela ABT',
     'Premiada pela PUC como Liderança em 2021',
-    '10+ premiações em Customer Experience (EXAME, Consumidor Moderno, Reclame Aqui, ABT)',
-    'LinkedIn Creator: Top Voice CX & Business Strategy',
+     '10+ premiações em Liderança e Gestão (EXAME, Consumidor Moderno, Reclame Aqui, ABT)',
+     'LinkedIn Creator: Top Voice Business Strategy',
     'Membro do IBGC',
     'Co-autora do livro "A Liderança Desafiada"',
     'Coach pela Sociedade Latino-Americana de Coaching',
@@ -46,7 +46,7 @@ const PAULA_BIO = {
 
 const TALK_THEMES = [
   { id: 'lideranca', label: 'Liderança Transformadora', desc: 'Como desenvolver líderes que inspiram e entregam resultados' },
-  { id: 'cx', label: 'Customer Experience', desc: 'Estratégias para criar experiências memoráveis' },
+  { id: 'autolideranca', label: 'Autoliderança', desc: 'Como liderar a si mesmo para alcançar resultados extraordinários' },
   { id: 'mulheres', label: 'Mulheres na Liderança', desc: 'Diversidade e empoderamento feminino no mundo corporativo' },
   { id: 'inovacao', label: 'Inovação e Transformação', desc: 'Como liderar em tempos de mudança acelerada' },
   { id: 'carreira', label: 'Carreira e Propósito', desc: 'Construindo uma carreira de impacto com autenticidade' },
