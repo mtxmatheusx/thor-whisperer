@@ -297,7 +297,7 @@ Site: ${PAULA_BIO.contact.site}`;
     URL.revokeObjectURL(url);
   };
 
-  // PDF Generation with branding
+  // PDF Generation with premium branding
   const handleDownloadPdf = async () => {
     if (!generatedProposal) return;
     setGeneratingPdf(true);
@@ -306,9 +306,11 @@ Site: ${PAULA_BIO.contact.site}`;
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pageW = doc.internal.pageSize.getWidth();
       const pageH = doc.internal.pageSize.getHeight();
-      const margin = 20;
-      const contentW = pageW - margin * 2;
-      let y = margin;
+      const marginL = 22;
+      const marginR = 22;
+      const contentW = pageW - marginL - marginR;
+      let y = 0;
+      const footerH = 18;
 
       // Load logo
       let logoImg: string | null = null;
@@ -322,120 +324,201 @@ Site: ${PAULA_BIO.contact.site}`;
         });
       } catch { /* logo not available */ }
 
+      // Helper: get logo aspect ratio
+      const getLogoSize = (maxW: number, maxH: number) => {
+        // Default aspect ratio ~3.5:1 for wide logos
+        const aspect = 3.5;
+        let w = maxW;
+        let h = w / aspect;
+        if (h > maxH) { h = maxH; w = h * aspect; }
+        return { w, h };
+      };
+
       const addPage = () => {
         doc.addPage();
-        y = margin;
-        // Header line on new pages
+        y = 12;
+        // Subtle top accent bar on continuation pages
+        doc.setFillColor(BRAND.primaryDark);
+        doc.rect(0, 0, pageW, 4, 'F');
         doc.setDrawColor(BRAND.primary);
-        doc.setLineWidth(0.5);
-        doc.line(margin, y, pageW - margin, y);
-        y += 8;
+        doc.setLineWidth(1);
+        doc.line(0, 4, pageW, 4);
+        y = 16;
       };
 
       const checkSpace = (needed: number) => {
-        if (y + needed > pageH - 25) addPage();
+        if (y + needed > pageH - footerH - 8) addPage();
       };
 
-      // === COVER / HEADER ===
-      // Navy header bar
-      doc.setFillColor(BRAND.primaryDark);
-      doc.rect(0, 0, pageW, 45, 'F');
+      // Clean text: remove markdown artifacts, JSON wrappers
+      const cleanText = (text: string): string => {
+        let cleaned = text;
+        // Remove JSON wrapper artifacts
+        cleaned = cleaned.replace(/^\s*\{?\s*"message"\s*:\s*"?/i, '');
+        cleaned = cleaned.replace(/"?\s*\}?\s*$/, '');
+        // Convert escaped chars
+        cleaned = cleaned.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\t/g, '  ');
+        // Remove markdown bold markers
+        cleaned = cleaned.replace(/\*\*(.*?)\*\*/g, '$1');
+        // Remove markdown italic
+        cleaned = cleaned.replace(/\*(.*?)\*/g, '$1');
+        // Remove markdown headers
+        cleaned = cleaned.replace(/^#{1,4}\s*/gm, '');
+        return cleaned;
+      };
 
-      // Logo
+      // ═══════════════════════════════════════════
+      // PAGE 1 — COVER HEADER
+      // ═══════════════════════════════════════════
+
+      // Full-width navy header
+      const headerH = 52;
+      doc.setFillColor(BRAND.primaryDark);
+      doc.rect(0, 0, pageW, headerH, 'F');
+
+      // Logo — large and responsive
       if (logoImg) {
-        doc.addImage(logoImg, 'PNG', margin, 8, 30, 12);
+        const logo = getLogoSize(55, 20);
+        doc.addImage(logoImg, 'PNG', marginL, (headerH - logo.h) / 2 - 4, logo.w, logo.h);
       }
 
-      // Title
+      // Title block — right aligned
       doc.setTextColor('#FFFFFF');
-      doc.setFontSize(22);
+      doc.setFontSize(24);
       doc.setFont('helvetica', 'bold');
-      doc.text('PROPOSTA COMERCIAL', pageW - margin, 20, { align: 'right' });
+      doc.text('PROPOSTA COMERCIAL', pageW - marginR, headerH / 2 - 4, { align: 'right' });
       doc.setFontSize(11);
       doc.setFont('helvetica', 'normal');
-      doc.text('Paula Pimenta', pageW - margin, 28, { align: 'right' });
-
-      // Copper accent line
-      doc.setDrawColor(BRAND.primary);
-      doc.setLineWidth(1.5);
-      doc.line(0, 45, pageW, 45);
-
-      y = 55;
-
-      // === CLIENT INFO ===
       doc.setTextColor(BRAND.primary);
-      doc.setFontSize(12);
+      doc.text('Paula Pimenta  •  Palestrante & Mentora', pageW - marginR, headerH / 2 + 5, { align: 'right' });
+
+      // Copper accent line below header
+      doc.setDrawColor(BRAND.primary);
+      doc.setLineWidth(2);
+      doc.line(0, headerH, pageW, headerH);
+
+      y = headerH + 12;
+
+      // ═══════════════════════════════════════════
+      // CLIENT INFO BOX
+      // ═══════════════════════════════════════════
+      const clientBoxH = 38;
+      // Light background box
+      doc.setFillColor(245, 240, 235); // BRAND.light
+      doc.roundedRect(marginL, y, contentW, clientBoxH, 3, 3, 'F');
+      // Left copper accent bar
+      doc.setFillColor(BRAND.primary);
+      doc.rect(marginL, y, 3, clientBoxH, 'F');
+
+      const infoX = marginL + 10;
+      let infoY = y + 8;
+
+      doc.setTextColor(BRAND.primary);
+      doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.text('DADOS DO CLIENTE', margin, y);
-      y += 7;
+      doc.text('DADOS DO CLIENTE', infoX, infoY);
+      infoY += 6;
 
       doc.setTextColor(BRAND.text);
-      doc.setFontSize(10);
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
-      const clientInfo = [
-        `Para: ${proposal.clientName}`,
-        `Empresa: ${proposal.clientCompany}`,
-        proposal.eventName ? `Evento: ${proposal.eventName}` : '',
-        `Data: ${proposal.eventDate || 'A definir'}`,
-        `Local: ${proposal.eventLocation || 'A definir'}`,
-        proposal.audience ? `Público: ${proposal.audience}` : '',
-      ].filter(Boolean);
 
-      clientInfo.forEach(line => {
-        doc.text(line, margin, y);
-        y += 5;
+      const clientFields = [
+        { label: 'Para', value: proposal.clientName },
+        { label: 'Empresa', value: proposal.clientCompany },
+        { label: 'Evento', value: proposal.eventName || 'A definir' },
+        { label: 'Data', value: proposal.eventDate || 'A definir' },
+        { label: 'Local', value: proposal.eventLocation || 'A definir' },
+        { label: 'Público', value: proposal.audience || 'Executivos' },
+      ];
+
+      // Render in 2 columns
+      const col1X = infoX;
+      const col2X = infoX + contentW / 2 - 5;
+      clientFields.forEach((field, idx) => {
+        const colX = idx < 3 ? col1X : col2X;
+        const rowY = infoY + (idx % 3) * 6;
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(BRAND.muted);
+        doc.text(`${field.label}:`, colX, rowY);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(BRAND.text);
+        doc.text(field.value, colX + doc.getTextWidth(`${field.label}: `) + 1, rowY);
       });
 
-      y += 5;
+      y += clientBoxH + 10;
 
-      // === PROPOSAL CONTENT ===
-      // Split the AI-generated content into sections
-      const lines = generatedProposal.split('\n');
-      
+      // ═══════════════════════════════════════════
+      // PROPOSAL BODY — cleaned and formatted
+      // ═══════════════════════════════════════════
+      const cleaned = cleanText(generatedProposal);
+      const lines = cleaned.split('\n');
+
+      // Skip lines already rendered in header/client box
+      const skipPatterns = [
+        /^═+$/, /^─+$/, /^PROPOSTA COMERCIAL$/i, /^Paula Pimenta$/i,
+        /^Para:/i, /^Empresa:/i, /^Evento:/i, /^Data:/i, /^Local:/i, /^Público:/i,
+        /^DADOS DO CLIENTE$/i,
+      ];
+
+      const isSectionHeader = (line: string) => {
+        const t = line.trim();
+        if (!t || t.length < 4) return false;
+        // ALL CAPS lines (excluding bullets)
+        if (t === t.toUpperCase() && !t.startsWith('•') && !t.startsWith('✓') && !t.startsWith('-') && !/^\d/.test(t)) return true;
+        // Lines ending with colon that look like headers
+        if (t.endsWith(':') && t.length < 60 && !t.includes('.')) return true;
+        return false;
+      };
+
       for (const line of lines) {
         const trimmed = line.trim();
-        if (!trimmed) { y += 3; continue; }
+        if (!trimmed) { y += 2; continue; }
 
-        // Skip the header we already rendered
-        if (trimmed.startsWith('═══') || trimmed.startsWith('───')) {
-          checkSpace(8);
-          doc.setDrawColor(BRAND.primary);
-          doc.setLineWidth(0.3);
-          doc.line(margin, y, pageW - margin, y);
-          y += 5;
-          continue;
-        }
+        // Skip already-rendered content
+        if (skipPatterns.some(p => p.test(trimmed))) continue;
 
-        if (trimmed === 'PROPOSTA COMERCIAL' || trimmed === 'Paula Pimenta') continue;
-        if (trimmed.startsWith('Para:') || trimmed.startsWith('Empresa:') || trimmed.startsWith('Evento:') || trimmed.startsWith('Data:') || trimmed.startsWith('Local:')) continue;
-
-        // Section headers
-        if (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && !trimmed.startsWith('•') && !trimmed.startsWith('✓')) {
-          checkSpace(12);
-          doc.setTextColor(BRAND.primary);
+        // ── Section Header ──
+        if (isSectionHeader(trimmed)) {
+          checkSpace(14);
+          y += 4;
+          // Copper left accent
+          doc.setFillColor(BRAND.primary);
+          doc.rect(marginL, y - 3.5, 2, 5, 'F');
+          doc.setTextColor(BRAND.primaryDark);
           doc.setFontSize(11);
           doc.setFont('helvetica', 'bold');
-          doc.text(trimmed, margin, y);
-          y += 7;
+          doc.text(trimmed, marginL + 6, y);
+          y += 8;
           continue;
         }
 
-        // Bullet points
-        if (trimmed.startsWith('•') || trimmed.startsWith('✓')) {
-          checkSpace(6);
+        // ── Bullet / check items ──
+        if (trimmed.startsWith('•') || trimmed.startsWith('✓') || trimmed.startsWith('-') || /^\d+\.\s/.test(trimmed)) {
+          checkSpace(7);
           doc.setTextColor(BRAND.text);
           doc.setFontSize(9);
           doc.setFont('helvetica', 'normal');
-          const bulletLines = doc.splitTextToSize(trimmed, contentW - 5);
-          bulletLines.forEach((bl: string) => {
+
+          // Use copper bullet
+          const bulletChar = trimmed.startsWith('✓') ? '✓' : '•';
+          const textContent = trimmed.replace(/^[•✓\-]\s*/, '').replace(/^\d+\.\s*/, '');
+
+          doc.setTextColor(BRAND.primary);
+          doc.setFontSize(9);
+          doc.text(bulletChar, marginL + 3, y);
+          doc.setTextColor(BRAND.text);
+          const bulletWrapped = doc.splitTextToSize(textContent, contentW - 10);
+          bulletWrapped.forEach((bl: string, idx: number) => {
             checkSpace(5);
-            doc.text(bl, margin + 3, y);
+            doc.text(bl, marginL + 8, y);
             y += 4.5;
           });
+          y += 1;
           continue;
         }
 
-        // Regular text
+        // ── Regular paragraph text ──
         checkSpace(6);
         doc.setTextColor(BRAND.text);
         doc.setFontSize(9);
@@ -443,23 +526,99 @@ Site: ${PAULA_BIO.contact.site}`;
         const wrapped = doc.splitTextToSize(trimmed, contentW);
         wrapped.forEach((wl: string) => {
           checkSpace(5);
-          doc.text(wl, margin, y);
+          doc.text(wl, marginL, y);
           y += 4.5;
         });
+        y += 1;
       }
 
-      // === FOOTER ===
+      // ═══════════════════════════════════════════
+      // INVESTMENT BOX (if not already in content)
+      // ═══════════════════════════════════════════
+      checkSpace(40);
+      y += 4;
+      const investBoxH = 32;
+      doc.setFillColor(BRAND.primaryDark);
+      doc.roundedRect(marginL, y, contentW, investBoxH, 3, 3, 'F');
+
+      doc.setTextColor('#FFFFFF');
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('INVESTIMENTO', marginL + 8, y + 8);
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Formato: ${selectedFormat?.label} (${selectedFormat?.duration})`, marginL + 8, y + 15);
+
+      doc.setTextColor(BRAND.primary);
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`R$ ${selectedFormat?.price.toLocaleString('pt-BR')},00`, pageW - marginR - 8, y + 14, { align: 'right' });
+
+      doc.setTextColor('#FFFFFF');
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Inclui: Conteúdo autoral  •  Presença integral + assessor  •  Apoio logístico', marginL + 8, y + 22);
+      doc.text('NF em até 5 dias  •  Pgto: 30 dias  •  Deslocamento por conta da contratante', marginL + 8, y + 27);
+
+      y += investBoxH + 8;
+
+      // ═══════════════════════════════════════════
+      // CONTACT STRIP
+      // ═══════════════════════════════════════════
+      checkSpace(20);
+      doc.setDrawColor(BRAND.primary);
+      doc.setLineWidth(0.5);
+      doc.line(marginL, y, pageW - marginR, y);
+      y += 6;
+
+      doc.setTextColor(BRAND.primary);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text('CONTATO', marginL, y);
+      y += 5;
+
+      doc.setTextColor(BRAND.muted);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      const contactLine = `${PAULA_BIO.contact.email}  •  ${PAULA_BIO.contact.phone}  •  ${PAULA_BIO.contact.site}  •  LinkedIn: paulavaliopimenta`;
+      doc.text(contactLine, marginL, y);
+
+      // ═══════════════════════════════════════════
+      // FOOTER on every page
+      // ═══════════════════════════════════════════
       const totalPages = doc.getNumberOfPages();
       for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
-        // Footer bar
+
+        // Navy footer bar
         doc.setFillColor(BRAND.primaryDark);
-        doc.rect(0, pageH - 15, pageW, 15, 'F');
+        doc.rect(0, pageH - footerH, pageW, footerH, 'F');
+
+        // Copper line on top of footer
+        doc.setDrawColor(BRAND.primary);
+        doc.setLineWidth(1);
+        doc.line(0, pageH - footerH, pageW, pageH - footerH);
+
+        // Small logo in footer
+        if (logoImg) {
+          const fLogo = getLogoSize(28, 8);
+          doc.addImage(logoImg, 'PNG', marginL, pageH - footerH / 2 - fLogo.h / 2, fLogo.w, fLogo.h);
+        }
+
+        // Contact info
         doc.setTextColor('#FFFFFF');
         doc.setFontSize(7);
         doc.setFont('helvetica', 'normal');
-        doc.text(`${PAULA_BIO.contact.email}  |  ${PAULA_BIO.contact.phone}  |  ${PAULA_BIO.contact.site}`, pageW / 2, pageH - 7, { align: 'center' });
-        doc.text(`Página ${i} de ${totalPages}`, pageW - margin, pageH - 7, { align: 'right' });
+        doc.text(
+          `${PAULA_BIO.contact.email}  |  ${PAULA_BIO.contact.phone}  |  ${PAULA_BIO.contact.site}`,
+          pageW / 2, pageH - footerH / 2 + 1, { align: 'center' }
+        );
+
+        // Page number
+        doc.setTextColor(BRAND.primary);
+        doc.setFontSize(8);
+        doc.text(`${i} / ${totalPages}`, pageW - marginR, pageH - footerH / 2 + 1, { align: 'right' });
       }
 
       doc.save(`Proposta_${proposal.clientCompany.replace(/\s/g, '_') || 'Palestra'}_Paula_Pimenta.pdf`);
