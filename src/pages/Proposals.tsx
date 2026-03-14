@@ -149,7 +149,20 @@ Escreva de forma profissional, persuasiva e personalizada. NÃO use formato JSON
 
       if (error) throw error;
 
-      const aiText = data?.message || data?.content || '';
+      // Parse AI response - may be JSON string or already parsed object
+      let aiText = '';
+      if (typeof data === 'string') {
+        try {
+          const parsed = JSON.parse(data);
+          aiText = parsed.message || parsed.content || data;
+        } catch {
+          aiText = data;
+        }
+      } else {
+        aiText = data?.message || data?.content || JSON.stringify(data);
+      }
+      // Convert escaped newlines to actual newlines
+      aiText = aiText.replace(/\\n/g, '\n').replace(/\\\"/g, '"');
 
       // Build final proposal with header/footer
       const doc = `═══════════════════════════════════════════════
