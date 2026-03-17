@@ -224,10 +224,6 @@ export default function ProfilePage() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary hover:underline break-all"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.open(item.href, '_blank', 'noopener,noreferrer');
-                    }}
                   >
                     {item.value}
                   </a>
