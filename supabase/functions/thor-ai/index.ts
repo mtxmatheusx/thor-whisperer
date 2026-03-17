@@ -196,6 +196,10 @@ Contexto: Estes prospects devem ser potenciais contratantes de palestras e trein
       }
     }
 
+    if (action === "extract-prospects") {
+      parsed = sanitizeExtractProspectsResponse(parsed as Record<string, unknown>);
+    }
+
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
