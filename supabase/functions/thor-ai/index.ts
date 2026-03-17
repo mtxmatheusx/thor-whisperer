@@ -82,29 +82,32 @@ ${data.customInstructions ? `Instruções adicionais: ${data.customInstructions}
 Paula Pimenta oferece: Palestras sobre Liderança, Autoliderança, Gestão de Pessoas, Mulheres na Liderança, Inovação. Formatos: Palestra 60min (R$10k), Keynote 45min (R$10k), Workshop 2h (R$20k), Programa 4 módulos (R$35k).`;
 
     } else if (action === "extract-prospects") {
-      systemPrompt = `Você é Thor AI, um extrator de dados de prospecção especializado em mercado brasileiro.
-Com base nos critérios de busca, gere uma lista de 5 a 10 prospects REALISTAS e relevantes que Paula Pimenta poderia abordar.
+      systemPrompt = `Você é Thor AI, um pesquisador B2B especializado em mercado brasileiro.
+Com base nos critérios de busca, gere uma lista de 5 a 10 prospects relevantes que Paula Pimenta poderia abordar.
 
-REGRAS CRÍTICAS PARA DADOS DE CONTATO:
-- linkedin_url: Gere URLs REAIS do LinkedIn no formato "https://www.linkedin.com/in/nome-sobrenome" baseado no nome da pessoa. Use o padrão real do LinkedIn (nome em minúsculo, sem acentos, separado por hífen).
-- email: Gere e-mails REAIS baseados no padrão corporativo da empresa. Pesquise o domínio real da empresa (ex: @natura.net, @ambev.com.br, @magazineluiza.com.br). Use padrões comuns como nome.sobrenome@dominio ou primeiro.ultimo@dominio.
-- phone: Use formato brasileiro real com DDD da cidade correta (ex: +55 11 9xxxx-xxxx para SP).
-- Todos os dados devem ser o MAIS REALISTAS possível, como se extraídos de um banco de dados real.
+REGRAS CRÍTICAS:
+- NÃO invente contatos. Se você não tiver alta confiança, retorne null para email, linkedin_url, phone e company_website.
+- NÃO crie links genéricos, encurtados, domínios suspeitos, páginas de jogos, apostas, diretórios ou sites irrelevantes.
+- company_website deve ser apenas o site institucional oficial da empresa.
+- linkedin_url deve ser apenas URL do LinkedIn em linkedin.com/in/... ou linkedin.com/company/....
+- email deve ser corporativo e compatível com o domínio do site oficial; se houver dúvida, retorne null.
+- phone deve seguir formato brasileiro plausível; se houver dúvida, retorne null.
+- Priorize qualidade sobre quantidade. Melhor deixar campos vazios do que preencher com dados errados.
 
 Retorne EXATAMENTE um JSON com esta estrutura:
 {
   "prospects": [
     {
-      "name": "Nome completo real",
+      "name": "Nome completo",
       "position": "Cargo exato",
       "company": "Nome real da empresa",
       "industry": "Setor",
       "company_size": "Porte (startup/pme/media/grande/enterprise)",
       "location": "Cidade, Estado",
-      "email": "email corporativo real baseado no domínio da empresa",
-      "linkedin_url": "https://www.linkedin.com/in/slug-real-do-perfil",
-      "phone": "telefone com DDD correto da cidade",
-      "company_website": "https://www.empresa.com.br",
+      "email": "email corporativo ou null",
+      "linkedin_url": "url válida do LinkedIn ou null",
+      "phone": "telefone ou null",
+      "company_website": "site institucional oficial ou null",
       "score": number 0-100,
       "reasoning": "Por que este prospect é relevante",
       "suggested_approach": "Como abordar este contato",
@@ -126,7 +129,7 @@ ${data.location ? `Localização: ${data.location}` : ""}
 ${data.company_size ? `Porte: ${data.company_size}` : ""}
 ${data.event_type ? `Tipo de evento: ${data.event_type}` : ""}
 
-IMPORTANTE: Use nomes de EMPRESAS REAIS do mercado brasileiro. Gere URLs de LinkedIn e e-mails no formato REAL dessas empresas. O domínio do e-mail deve ser o domínio corporativo real da empresa.
+IMPORTANTE: Use empresas reais do mercado brasileiro, mas seja conservador com contatos. Se não houver forte evidência para um contato ou link, devolva null.
 
 Contexto: Estes prospects devem ser potenciais contratantes de palestras e treinamentos corporativos. Paula Pimenta é especialista em Liderança, Autoliderança, Gestão de Pessoas, Empoderamento Feminino, com experiência em Natura, Danone, Unilever. Formatos: Palestra (R$10k), Keynote (R$10k), Workshop (R$20k), Programa (R$35k).`;
 
