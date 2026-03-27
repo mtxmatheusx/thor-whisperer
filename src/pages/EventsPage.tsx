@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useEvents, useEventContacts } from '@/hooks/useEvents';
+import { useEventSearch, SearchResult } from '@/hooks/useEventSearch';
 import {
   ProspectEvent, EventContact, EventPipelineStatus, EventPlatform,
   EVENT_PIPELINE_LABELS, EVENT_PIPELINE_COLORS, EVENT_PLATFORM_LABELS,
@@ -10,14 +11,15 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Plus, Search, Trash2, Loader2, Calendar, MapPin, Users, ExternalLink,
-  ArrowRightLeft, Eye, UserPlus, Globe, Star,
+  ArrowRightLeft, Eye, UserPlus, Globe, Star, Radar, Download, CheckCheck,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -49,10 +51,12 @@ const THEME_LABELS: Record<string, string> = {
 
 export default function EventsPage() {
   const { events, isLoading, createEvent, updateEvent, deleteEvent, updatePipelineStatus, convertToLead } = useEvents();
+  const eventSearch = useEventSearch();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [platformFilter, setPlatformFilter] = useState<string>('all');
   const [createOpen, setCreateOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [detailEvent, setDetailEvent] = useState<ProspectEvent | null>(null);
   const [contactOpen, setContactOpen] = useState(false);
 
@@ -89,9 +93,14 @@ export default function EventsPage() {
           <h1 className="text-2xl font-bold">Prospecção de Eventos</h1>
           <p className="text-sm text-muted-foreground">Descubra eventos e envie propostas automaticamente</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" /> Adicionar Evento
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setSearchOpen(true)}>
+            <Radar className="mr-2 h-4 w-4" /> Buscar Eventos
+          </Button>
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Adicionar Evento
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -232,6 +241,9 @@ export default function EventsPage() {
 
       {/* Create Event Dialog */}
       <CreateEventDialog open={createOpen} onOpenChange={setCreateOpen} onCreate={createEvent.mutate} />
+
+      {/* Search Events Dialog */}
+      <SearchEventsDialog open={searchOpen} onOpenChange={setSearchOpen} eventSearch={eventSearch} />
 
       {/* Event Detail Dialog */}
       {detailEvent && (
@@ -579,6 +591,241 @@ function EventDetailDialog({ event, open, onOpenChange, onUpdate, onDelete, onAd
         </Tabs>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ─── Search Events Dialog ────────────────────────────────────────────────────
+function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  eventSearch: ReturnType<typeof import('@/hooks/useEventSearch').useEventSearch>;
+}) {
+  const [keywordInput, setKeywordInput] = useState('');
+  const [searchPlatforms, setSearchPlatforms] = useState<string[]>(['eventbrite', 'sympla']);
+
+  const QUICK_KEYWORDS = [
+    'liderança', 'gestão', 'RH', 'cultura organizacional',
+    'inovação', 'estratégia', 'vendas', 'empreendedorismo',
+  ];
+
+  const handleSearch = () => {
+    const keywords = keywordInput
+      .split(',')
+      .map(k => k.trim())
+      .filter(Boolean);
+    if (keywords.length === 0) return;
+    eventSearch.search.mutate({ keywords, platforms: searchPlatforms });
+  };
+
+  const addQuickKeyword = (kw: string) => {
+    const current = keywordInput ? keywordInput.split(',').map(k => k.trim()) : [];
+    if (!current.includes(kw)) {
+      setKeywordInput([...current, kw].join(', '));
+    }
+  };
+
+  const togglePlatform = (platform: string) => {
+    setSearchPlatforms(prev =>
+      prev.includes(platform) ? prev.filter(p => p !== platform) : [...prev, platform]
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) eventSearch.clearResults(); onOpenChange(v); }}>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Radar className="h-5 w-5" /> Buscar Eventos nas Plataformas
+          </DialogTitle>
+          <DialogDescription>
+            Thor busca eventos no Eventbrite e Sympla por palavras-chave e qualifica automaticamente.
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Search Form */}
+        <div className="space-y-4">
+          <div>
+            <Label>Palavras-chave (separadas por vírgula)</Label>
+            <div className="flex gap-2 mt-1">
+              <Input
+                placeholder="liderança, gestão de pessoas, cultura organizacional..."
+                value={keywordInput}
+                onChange={e => setKeywordInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSearch()}
+              />
+              <Button onClick={handleSearch} disabled={eventSearch.isSearching || !keywordInput.trim()}>
+                {eventSearch.isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+
+          {/* Quick keywords */}
+          <div className="flex flex-wrap gap-1.5">
+            {QUICK_KEYWORDS.map(kw => (
+              <Badge
+                key={kw}
+                variant="outline"
+                className="cursor-pointer hover:bg-primary/10 transition-colors"
+                onClick={() => addQuickKeyword(kw)}
+              >
+                + {kw}
+              </Badge>
+            ))}
+          </div>
+
+          {/* Platform toggles */}
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={searchPlatforms.includes('eventbrite')}
+                onCheckedChange={() => togglePlatform('eventbrite')}
+              />
+              Eventbrite
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={searchPlatforms.includes('sympla')}
+                onCheckedChange={() => togglePlatform('sympla')}
+              />
+              Sympla
+            </label>
+          </div>
+        </div>
+
+        {/* Results */}
+        {eventSearch.results.length > 0 && (
+          <div className="space-y-3 mt-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">{eventSearch.results.length} eventos encontrados</p>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={eventSearch.selectAll}>
+                  <CheckCheck className="mr-1 h-3 w-3" /> Selecionar todos
+                </Button>
+                <Button variant="ghost" size="sm" onClick={eventSearch.deselectAll}>
+                  Limpar seleção
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
+              {eventSearch.results.map((ev) => (
+                <SearchResultCard
+                  key={ev.fingerprint}
+                  event={ev}
+                  selected={eventSearch.selectedIds.has(ev.fingerprint)}
+                  onToggle={() => eventSearch.toggleSelect(ev.fingerprint)}
+                />
+              ))}
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { eventSearch.clearResults(); onOpenChange(false); }}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => eventSearch.importSelected.mutate()}
+                disabled={eventSearch.selectedIds.size === 0 || eventSearch.isImporting}
+              >
+                {eventSearch.isImporting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                Importar {eventSearch.selectedIds.size} evento(s)
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+
+        {/* Empty state after search */}
+        {eventSearch.search.isSuccess && eventSearch.results.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            <Radar className="h-12 w-12 mx-auto mb-3 opacity-30" />
+            <p>Nenhum evento encontrado para essas palavras-chave.</p>
+            <p className="text-sm mt-1">Tente termos diferentes ou mais amplos.</p>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Search Result Card ──────────────────────────────────────────────────────
+function SearchResultCard({ event, selected, onToggle }: {
+  event: SearchResult;
+  selected: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div
+      className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+        selected ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+      }`}
+      onClick={onToggle}
+    >
+      <Checkbox checked={selected} className="mt-1" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-sm truncate">{event.name}</span>
+          <Badge variant="secondary" className="text-[10px] shrink-0">
+            {EVENT_PLATFORM_LABELS[event.platform as EventPlatform] || event.platform}
+          </Badge>
+        </div>
+        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-xs text-muted-foreground">
+          {event.event_date && (
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              {(() => { try { return format(new Date(event.event_date), 'dd MMM yyyy', { locale: ptBR }); } catch { return 'Data TBD'; } })()}
+            </span>
+          )}
+          {(event.location_city || event.is_online) && (
+            <span className="flex items-center gap-1">
+              {event.is_online ? <Globe className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}
+              {event.is_online ? 'Online' : event.location_city}
+            </span>
+          )}
+          {event.estimated_audience && (
+            <span className="flex items-center gap-1">
+              <Users className="h-3 w-3" /> {event.estimated_audience}
+            </span>
+          )}
+        </div>
+        {event.themes.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {event.themes.slice(0, 4).map(t => (
+              <Badge key={t} variant="outline" className="text-[10px] py-0">
+                {THEME_LABELS[t] || t}
+              </Badge>
+            ))}
+          </div>
+        )}
+        {event.description && (
+          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{event.description}</p>
+        )}
+      </div>
+      <div className="text-right shrink-0">
+        <div className="flex items-center gap-1">
+          <Star className="h-3 w-3 text-yellow-500" />
+          <span className={`text-sm font-bold ${
+            event.qualification_score >= 60 ? 'text-green-600' :
+            event.qualification_score >= 30 ? 'text-yellow-600' : 'text-muted-foreground'
+          }`}>
+            {event.qualification_score}
+          </span>
+        </div>
+        {event.platform_url && (
+          <a
+            href={event.platform_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-blue-500 hover:underline mt-1 inline-flex items-center gap-0.5"
+            onClick={e => e.stopPropagation()}
+          >
+            Ver <ExternalLink className="h-2.5 w-2.5" />
+          </a>
+        )}
+      </div>
+    </div>
   );
 }
 
