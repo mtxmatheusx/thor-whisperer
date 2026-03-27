@@ -24,6 +24,8 @@ export interface SearchResult {
   fingerprint: string;
   organizer_name: string | null;
   organizer_url: string | null;
+  organizer_email: string | null;
+  organizer_phone: string | null;
 }
 
 interface SearchResponse {

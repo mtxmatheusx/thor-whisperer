@@ -799,8 +799,26 @@ function SearchResultCard({ event, selected, onToggle }: {
             ))}
           </div>
         )}
+        {/* Organizer & Contact Info */}
+        {(event.organizer_name || event.organizer_email || event.organizer_phone) && (
+          <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs">
+            {event.organizer_name && (
+              <span className="text-foreground font-medium">{event.organizer_name}</span>
+            )}
+            {event.organizer_email && (
+              <a href={`mailto:${event.organizer_email}`} className="text-blue-500 hover:underline" onClick={e => e.stopPropagation()}>
+                {event.organizer_email}
+              </a>
+            )}
+            {event.organizer_phone && (
+              <a href={`https://wa.me/${event.organizer_phone.replace(/\D/g, '')}`} className="text-green-600 hover:underline" onClick={e => e.stopPropagation()}>
+                {event.organizer_phone}
+              </a>
+            )}
+          </div>
+        )}
         {event.description && (
-          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{event.description}</p>
+          <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{event.description}</p>
         )}
       </div>
       <div className="text-right shrink-0">
