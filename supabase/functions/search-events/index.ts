@@ -6,82 +6,86 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || "AIzaSyAoeA62dvQouy2gfQBeuMeS7xB32KtGfus";
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-// ─── Search events using Gemini + Google Search grounding ────────────────────
-async function searchEventsViaGemini(keywords: string[]): Promise<RawEvent[]> {
+// ─── Search events using Lovable AI Gateway ──────────────────────────────────
+async function searchEventsViaAI(keywords: string[], location?: string): Promise<RawEvent[]> {
+  if (!LOVABLE_API_KEY) {
+    console.error("LOVABLE_API_KEY not configured");
+    return [];
+  }
+
   const query = keywords.join(", ");
+  const locationHint = location ? ` na região de ${location}` : " no Brasil";
 
-  const prompt = `Pesquise no Google eventos corporativos no Brasil sobre: ${query}
+  const prompt = `Pesquise eventos corporativos REAIS de 2026${locationHint} sobre: ${query}
 
-Busque em plataformas como Sympla, Eventbrite, Even3, Meetup, e sites de congressos/conferências.
+INSTRUÇÕES OBRIGATÓRIAS:
+1. Busque APENAS eventos que acontecem em 2026 ou que ainda não têm data definida para 2026
+2. Pesquise em: Sympla, Eventbrite, Even3, sites oficiais de congressos, conferências e summits
+3. Para cada evento, extraia os DADOS DE CONTATO REAIS do organizador — busque na página do evento, no rodapé, na seção "sobre o organizador", "contato", etc.
+4. NÃO INVENTE dados. Se não encontrar email ou telefone, deixe null.
+5. Retorne entre 5 e 20 eventos relevantes
 
-Para CADA evento encontrado, extraia:
-- name: nome do evento
-- description: descrição breve (max 200 chars)
-- platform: plataforma onde está (sympla, eventbrite, even3, meetup, google)
-- platform_url: URL COMPLETA da página do evento (OBRIGATÓRIO - preciso do link real)
-- event_date: data do evento (formato ISO se possível)
-- event_end_date: data fim (se disponível)
-- location_city: cidade
-- location_state: estado (sigla)
-- location_venue: local/venue
-- is_online: true/false
-- estimated_audience: estimativa de público (número)
-- ticket_price_range: free, low, medium, high
-- category: conference, workshop, summit, forum, seminar, congress, other
-- organizer_name: nome do organizador/empresa
-- organizer_email: email de contato (se encontrar na página)
-- organizer_phone: telefone/WhatsApp (se encontrar)
-- organizer_url: site ou rede social do organizador
+Para CADA evento retorne este JSON:
+{
+  "name": "Nome do evento",
+  "description": "Descrição breve (max 200 chars)",
+  "platform": "sympla|eventbrite|even3|google",
+  "platform_url": "URL COMPLETA e REAL do evento",
+  "event_date": "2026-MM-DD ou null",
+  "event_end_date": "2026-MM-DD ou null",
+  "location_city": "Cidade",
+  "location_state": "UF",
+  "location_venue": "Local/Venue",
+  "is_online": false,
+  "estimated_audience": 500,
+  "ticket_price_range": "free|low|medium|high",
+  "category": "conference|workshop|summit|forum|seminar|congress|other",
+  "organizer_name": "Nome do organizador ou empresa organizadora",
+  "organizer_email": "email@real.com ou null",
+  "organizer_phone": "55119XXXXXXXX ou null",
+  "organizer_url": "https://site-do-organizador.com ou null",
+  "organizer_linkedin": "https://linkedin.com/company/... ou null",
+  "organizer_instagram": "https://instagram.com/... ou null"
+}
 
-IMPORTANTE:
-- Retorne APENAS eventos REAIS que existem de verdade com URLs válidas
-- Foque em eventos de 2025 e 2026
-- Inclua TODOS os dados de contato que encontrar
-- Retorne no MÍNIMO 5 eventos, idealmente 10-20
-- Retorne APENAS um JSON array válido, sem markdown, sem explicação
+PRIORIZE eventos sobre: ${query}
+FOCO: eventos corporativos, conferências, summits, congressos, fóruns de negócios
+CONTATOS: busque email, telefone, WhatsApp, site e redes sociais do organizador
 
-Formato da resposta (APENAS o JSON array):
-[{"name":"...","description":"...","platform":"...","platform_url":"...","event_date":"...","event_end_date":null,"location_city":"...","location_state":"...","location_venue":"...","is_online":false,"estimated_audience":null,"ticket_price_range":"medium","category":"conference","organizer_name":"...","organizer_email":null,"organizer_phone":null,"organizer_url":null}]`;
+Retorne APENAS um JSON array válido. Sem markdown, sem explicação, sem texto adicional.`;
 
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          tools: [{ google_search: {} }],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 8192,
-          },
-        }),
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "system",
+            content: "Você é um pesquisador especialista em encontrar eventos corporativos no Brasil. Retorne APENAS JSON válido, sem texto adicional. Foque em eventos de 2026. Extraia dados de contato reais dos organizadores.",
+          },
+          { role: "user", content: prompt },
+        ],
+      }),
+    });
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error(`Gemini API error ${res.status}: ${errText}`);
-
-      // Fallback: try without google_search tool (basic model)
-      return await searchEventsGeminiFallback(keywords);
+      console.error(`AI Gateway error ${res.status}: ${errText}`);
+      return [];
     }
 
     const data = await res.json();
-
-    // Extract text from response
-    let text = "";
-    for (const candidate of data.candidates || []) {
-      for (const part of candidate.content?.parts || []) {
-        if (part.text) text += part.text;
-      }
-    }
+    const text = data.choices?.[0]?.message?.content || "";
 
     if (!text) {
-      console.error("Gemini returned empty response");
+      console.error("AI returned empty response");
       return [];
     }
 
@@ -114,91 +118,15 @@ Formato da resposta (APENAS o JSON array):
         organizer_url: ev.organizer_url || null,
         organizer_email: ev.organizer_email || null,
         organizer_phone: ev.organizer_phone || null,
+        organizer_linkedin: ev.organizer_linkedin || null,
+        organizer_instagram: ev.organizer_instagram || null,
       }));
     } catch (parseErr) {
-      console.error("Failed to parse Gemini response:", parseErr, "Raw:", jsonStr.slice(0, 500));
+      console.error("Failed to parse AI response:", parseErr, "Raw:", jsonStr.slice(0, 500));
       return [];
     }
   } catch (err) {
-    console.error("Gemini search failed:", err);
-    return [];
-  }
-}
-
-// ─── Fallback: Gemini without search grounding ───────────────────────────────
-async function searchEventsGeminiFallback(keywords: string[]): Promise<RawEvent[]> {
-  const query = keywords.join(", ");
-
-  const prompt = `Liste eventos corporativos REAIS no Brasil sobre: ${query}
-
-Foque em eventos conhecidos de 2025 e 2026. Para cada evento, forneça:
-- name, description (breve), platform (sympla/eventbrite/even3/google), platform_url (URL real do evento)
-- event_date, location_city, location_state, location_venue, is_online
-- category (conference/workshop/summit/forum/seminar/congress)
-- organizer_name, organizer_email, organizer_phone, organizer_url
-
-Retorne APENAS um JSON array válido, sem explicação.
-[{"name":"...","platform_url":"https://...","event_date":"2026-...","location_city":"São Paulo","location_state":"SP","organizer_name":"...","organizer_email":"...","organizer_phone":"..."}]`;
-
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 8192,
-          },
-        }),
-      },
-    );
-
-    if (!res.ok) {
-      console.error(`Gemini fallback error: ${res.status}`);
-      return [];
-    }
-
-    const data = await res.json();
-    let text = "";
-    for (const candidate of data.candidates || []) {
-      for (const part of candidate.content?.parts || []) {
-        if (part.text) text += part.text;
-      }
-    }
-
-    let jsonStr = text.trim();
-    if (jsonStr.startsWith("```")) {
-      jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
-    }
-
-    const events = JSON.parse(jsonStr);
-    if (!Array.isArray(events)) return [];
-
-    return events.map((ev: any) => ({
-      name: ev.name || "Sem nome",
-      description: (ev.description || "").slice(0, 500),
-      platform: mapPlatform(ev.platform || ev.platform_url || "google"),
-      platform_id: extractIdFromUrl(ev.platform_url || ""),
-      platform_url: ev.platform_url || "",
-      event_date: ev.event_date || null,
-      event_end_date: ev.event_end_date || null,
-      location_city: ev.location_city || "",
-      location_state: ev.location_state || "",
-      location_venue: ev.location_venue || "",
-      is_online: ev.is_online || false,
-      estimated_audience: ev.estimated_audience || null,
-      ticket_price_range: ev.ticket_price_range || "medium",
-      category: ev.category || inferCategory(ev.name || ""),
-      organizer_name: ev.organizer_name || null,
-      organizer_url: ev.organizer_url || null,
-      organizer_email: ev.organizer_email || null,
-      organizer_phone: ev.organizer_phone || null,
-    }));
-  } catch (err) {
-    console.error("Gemini fallback failed:", err);
+    console.error("AI search failed:", err);
     return [];
   }
 }
@@ -209,7 +137,6 @@ function mapPlatform(input: string): string {
   if (lower.includes("sympla")) return "sympla";
   if (lower.includes("eventbrite")) return "eventbrite";
   if (lower.includes("even3")) return "even3";
-  if (lower.includes("meetup")) return "google";
   return "google";
 }
 
@@ -274,9 +201,10 @@ function qualifyEvent(event: RawEvent, searchKeywords: string[]): { score: numbe
   // Has URL (0-5)
   if (event.platform_url) score += 5;
 
-  // Has organizer info (0-10)
+  // Has organizer info (0-15)
   if (event.organizer_name) score += 5;
-  if (event.organizer_email || event.organizer_phone) score += 5;
+  if (event.organizer_email) score += 5;
+  if (event.organizer_phone) score += 5;
 
   // Audience size (0-5)
   if (event.estimated_audience && event.estimated_audience >= 200) score += 5;
@@ -304,6 +232,8 @@ interface RawEvent {
   organizer_url: string | null;
   organizer_email: string | null;
   organizer_phone: string | null;
+  organizer_linkedin: string | null;
+  organizer_instagram: string | null;
 }
 
 interface SearchResult extends RawEvent {
@@ -319,7 +249,7 @@ serve(async (req) => {
   }
 
   try {
-    const { keywords, platforms } = await req.json();
+    const { keywords, location } = await req.json();
 
     if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
       return new Response(
@@ -328,8 +258,7 @@ serve(async (req) => {
       );
     }
 
-    // Search via Gemini + Google Search
-    const rawEvents = await searchEventsViaGemini(keywords);
+    const rawEvents = await searchEventsViaAI(keywords, location);
 
     // Qualify and build results
     const results: SearchResult[] = rawEvents.map((event) => {
