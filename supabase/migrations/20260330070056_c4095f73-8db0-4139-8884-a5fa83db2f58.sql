@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS events_fingerprint_user_id_unique ON public.events (fingerprint, user_id);
