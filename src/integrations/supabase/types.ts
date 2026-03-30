@@ -14,6 +14,271 @@ export type Database = {
   }
   public: {
     Tables: {
+      discovery_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_log: string | null
+          events_found: number | null
+          events_qualified: number | null
+          id: string
+          platforms: string[]
+          search_params: Json
+          started_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_log?: string | null
+          events_found?: number | null
+          events_qualified?: number | null
+          id?: string
+          platforms?: string[]
+          search_params?: Json
+          started_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_log?: string | null
+          events_found?: number | null
+          events_qualified?: number | null
+          id?: string
+          platforms?: string[]
+          search_params?: Json
+          started_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      event_contacts: {
+        Row: {
+          confidence: string | null
+          created_at: string
+          email: string | null
+          event_id: string
+          id: string
+          instagram: string | null
+          linkedin: string | null
+          name: string | null
+          phone: string | null
+          role: string | null
+          source: string | null
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          confidence?: string | null
+          created_at?: string
+          email?: string | null
+          event_id: string
+          id?: string
+          instagram?: string | null
+          linkedin?: string | null
+          name?: string | null
+          phone?: string | null
+          role?: string | null
+          source?: string | null
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          confidence?: string | null
+          created_at?: string
+          email?: string | null
+          event_id?: string
+          id?: string
+          instagram?: string | null
+          linkedin?: string | null
+          name?: string | null
+          phone?: string | null
+          role?: string | null
+          source?: string | null
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_contacts_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_outreach_log: {
+        Row: {
+          body: string | null
+          channel: string
+          created_at: string
+          event_contact_id: string | null
+          event_id: string
+          external_message_id: string | null
+          id: string
+          opened_at: string | null
+          outreach_type: string
+          replied_at: string | null
+          sent_at: string | null
+          status: string
+          subject: string | null
+          template_used: string | null
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          channel: string
+          created_at?: string
+          event_contact_id?: string | null
+          event_id: string
+          external_message_id?: string | null
+          id?: string
+          opened_at?: string | null
+          outreach_type: string
+          replied_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template_used?: string | null
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          channel?: string
+          created_at?: string
+          event_contact_id?: string | null
+          event_id?: string
+          external_message_id?: string | null
+          id?: string
+          opened_at?: string | null
+          outreach_type?: string
+          replied_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template_used?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_outreach_log_event_contact_id_fkey"
+            columns: ["event_contact_id"]
+            isOneToOne: false
+            referencedRelation: "event_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_outreach_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          audience_type: string | null
+          category: string | null
+          converted_lead_id: string | null
+          created_at: string
+          description: string | null
+          discard_reason: string | null
+          discovery_run_id: string | null
+          estimated_audience: number | null
+          event_date: string | null
+          event_end_date: string | null
+          fingerprint: string | null
+          id: string
+          is_online: boolean | null
+          location_city: string | null
+          location_state: string | null
+          location_venue: string | null
+          name: string
+          pipeline_status: string
+          platform: string
+          platform_id: string | null
+          platform_url: string | null
+          qualification_notes: string | null
+          qualification_score: number | null
+          themes: string[] | null
+          ticket_price_range: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          audience_type?: string | null
+          category?: string | null
+          converted_lead_id?: string | null
+          created_at?: string
+          description?: string | null
+          discard_reason?: string | null
+          discovery_run_id?: string | null
+          estimated_audience?: number | null
+          event_date?: string | null
+          event_end_date?: string | null
+          fingerprint?: string | null
+          id?: string
+          is_online?: boolean | null
+          location_city?: string | null
+          location_state?: string | null
+          location_venue?: string | null
+          name: string
+          pipeline_status?: string
+          platform: string
+          platform_id?: string | null
+          platform_url?: string | null
+          qualification_notes?: string | null
+          qualification_score?: number | null
+          themes?: string[] | null
+          ticket_price_range?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          audience_type?: string | null
+          category?: string | null
+          converted_lead_id?: string | null
+          created_at?: string
+          description?: string | null
+          discard_reason?: string | null
+          discovery_run_id?: string | null
+          estimated_audience?: number | null
+          event_date?: string | null
+          event_end_date?: string | null
+          fingerprint?: string | null
+          id?: string
+          is_online?: boolean | null
+          location_city?: string | null
+          location_state?: string | null
+          location_venue?: string | null
+          name?: string
+          pipeline_status?: string
+          platform?: string
+          platform_id?: string | null
+          platform_url?: string | null
+          qualification_notes?: string | null
+          qualification_score?: number | null
+          themes?: string[] | null
+          ticket_price_range?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_discovery_run_id_fkey"
+            columns: ["discovery_run_id"]
+            isOneToOne: false
+            referencedRelation: "discovery_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       interactions: {
         Row: {
           content: string | null
