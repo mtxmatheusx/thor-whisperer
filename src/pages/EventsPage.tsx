@@ -20,6 +20,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   Plus, Search, Trash2, Loader2, Calendar, MapPin, Users, ExternalLink,
   ArrowRightLeft, Eye, UserPlus, Globe, Star, Radar, Download, CheckCheck,
+  Mail, Phone, Contact,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -799,22 +800,30 @@ function SearchResultCard({ event, selected, onToggle }: {
             ))}
           </div>
         )}
-        {/* Organizer & Contact Info */}
-        {(event.organizer_name || event.organizer_email || event.organizer_phone) && (
-          <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs">
+        {/* Contact Info */}
+        {(event.organizer_email || event.organizer_phone) && (
+          <div className="flex items-center gap-2 mt-2 p-1.5 rounded bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
+            <Badge variant="outline" className="text-[10px] bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 gap-1">
+              <Contact className="h-2.5 w-2.5" /> Contato
+            </Badge>
             {event.organizer_name && (
-              <span className="text-foreground font-medium">{event.organizer_name}</span>
+              <span className="text-xs font-medium text-foreground">{event.organizer_name}</span>
             )}
             {event.organizer_email && (
-              <a href={`mailto:${event.organizer_email}`} className="text-blue-500 hover:underline" onClick={e => e.stopPropagation()}>
-                {event.organizer_email}
+              <a href={`mailto:${event.organizer_email}`} className="inline-flex items-center gap-0.5 text-xs text-blue-600 hover:underline" onClick={e => e.stopPropagation()}>
+                <Mail className="h-3 w-3" /> {event.organizer_email}
               </a>
             )}
             {event.organizer_phone && (
-              <a href={`https://wa.me/${event.organizer_phone.replace(/\D/g, '')}`} className="text-green-600 hover:underline" onClick={e => e.stopPropagation()}>
-                {event.organizer_phone}
+              <a href={`https://wa.me/${event.organizer_phone.replace(/\D/g, '')}`} className="inline-flex items-center gap-0.5 text-xs text-green-600 hover:underline" onClick={e => e.stopPropagation()}>
+                <Phone className="h-3 w-3" /> {event.organizer_phone}
               </a>
             )}
+          </div>
+        )}
+        {event.organizer_name && !event.organizer_email && !event.organizer_phone && (
+          <div className="flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground">
+            <Contact className="h-3 w-3" /> {event.organizer_name}
           </div>
         )}
         {event.description && (

@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ProspectEvent } from '@/types';
 import { toast } from '@/hooks/use-toast';
 
 export interface SearchResult {
   name: string;
   description: string;
-  platform: 'sympla' | 'eventbrite';
+  platform: 'sympla' | 'eventbrite' | 'even3' | 'google';
   platform_id: string;
   platform_url: string;
   event_date: string | null;
@@ -26,6 +25,8 @@ export interface SearchResult {
   organizer_url: string | null;
   organizer_email: string | null;
   organizer_phone: string | null;
+  organizer_linkedin: string | null;
+  organizer_instagram: string | null;
 }
 
 interface SearchResponse {
@@ -59,9 +60,10 @@ export function useEventSearch() {
     onSuccess: (data) => {
       setResults(data.events);
       setSelectedIds(new Set());
+      const withContact = data.events.filter(e => e.organizer_email || e.organizer_phone).length;
       toast({
         title: `${data.total} eventos encontrados`,
-        description: `Plataformas: ${data.platforms_searched.join(', ')}`,
+        description: `${withContact} com dados de contato disponíveis`,
       });
     },
     onError: (err: Error) => {
@@ -98,6 +100,7 @@ export function useEventSearch() {
       const toImport = results.filter((r) => selectedIds.has(r.fingerprint));
       if (toImport.length === 0) throw new Error('Nenhum evento selecionado');
 
+      // 1. Insert events
       const rows = toImport.map((ev) => ({
         user_id: user.id,
         name: ev.name,
@@ -126,13 +129,52 @@ export function useEventSearch() {
         .select();
 
       if (error) throw error;
-      return data;
+
+      // 2. Auto-insert contacts for imported events
+      const importedEvents = data || [];
+      const contactRows = [];
+
+      for (const imported of importedEvents) {
+        const original = toImport.find(r => r.fingerprint === imported.fingerprint);
+        if (!original) continue;
+        
+        const hasContact = original.organizer_name || original.organizer_email || original.organizer_phone;
+        if (!hasContact) continue;
+
+        contactRows.push({
+          event_id: imported.id,
+          user_id: user.id,
+          name: original.organizer_name || null,
+          role: 'organizer',
+          email: original.organizer_email || null,
+          phone: original.organizer_phone || null,
+          linkedin: original.organizer_linkedin || null,
+          instagram: original.organizer_instagram || null,
+          website: original.organizer_url || null,
+          source: 'ai_discovery',
+          confidence: original.organizer_email ? 'medium' : 'low',
+        });
+      }
+
+      if (contactRows.length > 0) {
+        const { error: contactError } = await (supabase as any)
+          .from('event_contacts')
+          .insert(contactRows);
+        if (contactError) {
+          console.error('Error inserting contacts:', contactError);
+        }
+      }
+
+      return { events: importedEvents, contacts: contactRows.length };
     },
-    onSuccess: (data) => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
-      const count = data?.length || 0;
-      toast({ title: `${count} evento(s) importado(s) para o pipeline!` });
-      // Remove imported from results
+      const evCount = result.events?.length || 0;
+      const ctCount = result.contacts || 0;
+      toast({ 
+        title: `${evCount} evento(s) importado(s)`,
+        description: ctCount > 0 ? `${ctCount} contato(s) salvos automaticamente` : undefined,
+      });
       setResults((prev) => prev.filter((r) => !selectedIds.has(r.fingerprint)));
       setSelectedIds(new Set());
     },
