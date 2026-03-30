@@ -20,6 +20,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   Plus, Search, Trash2, Loader2, Calendar, MapPin, Users, ExternalLink,
   ArrowRightLeft, Eye, UserPlus, Globe, Star, Radar, Download, CheckCheck,
+  Mail, Phone, Contact,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
