@@ -848,11 +848,14 @@ Site: ${PAULA_BIO.contact.site}`;
                 <a href={PAULA_BIO.contact.linkedin} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
                   <Linkedin className="h-4 w-4" /> LinkedIn
                 </a>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Instagram className="h-4 w-4" /> {PAULA_BIO.contact.instagram}
-                </div>
-                <a href={`https://${PAULA_BIO.contact.site}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
-                  <Globe className="h-4 w-4" /> {PAULA_BIO.contact.site}
+                <a href={PAULA_BIO.contact.instagram} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Instagram className="h-4 w-4" /> Instagram
+                </a>
+                <a href={PAULA_BIO.contact.site} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Globe className="h-4 w-4" /> Site Oficial
+                </a>
+                <a href={PAULA_BIO.contact.portfolio} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Sparkles className="h-4 w-4" /> Portfólio de Palestras
                 </a>
               </CardContent>
             </Card>
