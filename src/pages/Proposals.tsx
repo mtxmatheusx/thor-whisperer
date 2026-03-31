@@ -418,7 +418,7 @@ Site: ${PAULA_BIO.contact.site}`;
         </div>
         <div style="position:absolute;bottom:0;left:0;right:0;height:12px;background:#C47B3B;"></div>
         <div style="position:absolute;bottom:24px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,0.6);">
-          ${PAULA_BIO.contact.email}  •  ${PAULA_BIO.contact.phone}  •  paulavaliopimenta.com.br
+          ${PAULA_BIO.contact.email}  •  ${PAULA_BIO.contact.phone}  •  paula-pimenta-palestrante.vercel.app
         </div>
       `;
       container.appendChild(cover);

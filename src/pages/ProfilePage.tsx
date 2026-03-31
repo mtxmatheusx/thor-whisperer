@@ -216,7 +216,8 @@ export default function ProfilePage() {
                 { icon: Instagram, label: 'Instagram', value: (p.contact || FALLBACK_PROFILE.contact).instagram, href: (p.contact || FALLBACK_PROFILE.contact).instagram },
                 { icon: Youtube, label: 'YouTube', value: (p.contact || FALLBACK_PROFILE.contact).youtube, href: (p.contact || FALLBACK_PROFILE.contact).youtube },
                 { icon: Globe, label: 'Website', value: (p.contact || FALLBACK_PROFILE.contact).site, href: (p.contact || FALLBACK_PROFILE.contact).site },
-              ].map((item, i) => (
+                { icon: Sparkles, label: 'Portfólio', value: (p.contact || FALLBACK_PROFILE.contact).portfolio, href: (p.contact || FALLBACK_PROFILE.contact).portfolio },
+               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-3 text-sm">
                   <item.icon className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground w-20">{item.label}</span>
