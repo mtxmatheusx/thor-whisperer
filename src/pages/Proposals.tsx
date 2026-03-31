@@ -42,6 +42,7 @@ const PAULA_BIO = {
     linkedin: 'https://www.linkedin.com/in/paula-valio-pimenta/',
     instagram: 'https://www.instagram.com/paulavaliopimenta/',
     site: 'https://paulavaliopimenta.com.br/',
+    portfolio: 'https://paula-pimenta-palestrante.vercel.app/',
   },
 };
 
@@ -417,7 +418,7 @@ Site: ${PAULA_BIO.contact.site}`;
         </div>
         <div style="position:absolute;bottom:0;left:0;right:0;height:12px;background:#C47B3B;"></div>
         <div style="position:absolute;bottom:24px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,0.6);">
-          ${PAULA_BIO.contact.email}  •  ${PAULA_BIO.contact.phone}  •  paulavaliopimenta.com.br
+          ${PAULA_BIO.contact.email}  •  ${PAULA_BIO.contact.phone}  •  paula-pimenta-palestrante.vercel.app
         </div>
       `;
       container.appendChild(cover);
@@ -540,6 +541,12 @@ Site: ${PAULA_BIO.contact.site}`;
             <span>📱 ${PAULA_BIO.contact.phone}</span>
             <span>🌐 paulavaliopimenta.com.br</span>
             <span>🔗 LinkedIn: paula-valio-pimenta</span>
+          </div>
+          <div style="margin-top:16px;padding:12px 20px;background:#F8F4EF;border-radius:6px;border-left:4px solid #C47B3B;">
+            <span style="font-size:12px;color:#1B2A4A;font-weight:bold;">🎤 Conheça mais sobre minhas palestras:</span>
+            <a href="https://paula-pimenta-palestrante.vercel.app/" style="display:block;font-size:12px;color:#C47B3B;margin-top:4px;text-decoration:underline;">
+              paula-pimenta-palestrante.vercel.app
+            </a>
           </div>
         </div>
       `;
@@ -847,11 +854,14 @@ Site: ${PAULA_BIO.contact.site}`;
                 <a href={PAULA_BIO.contact.linkedin} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
                   <Linkedin className="h-4 w-4" /> LinkedIn
                 </a>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Instagram className="h-4 w-4" /> {PAULA_BIO.contact.instagram}
-                </div>
-                <a href={`https://${PAULA_BIO.contact.site}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
-                  <Globe className="h-4 w-4" /> {PAULA_BIO.contact.site}
+                <a href={PAULA_BIO.contact.instagram} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Instagram className="h-4 w-4" /> Instagram
+                </a>
+                <a href={PAULA_BIO.contact.site} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Globe className="h-4 w-4" /> Site Oficial
+                </a>
+                <a href={PAULA_BIO.contact.portfolio} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Sparkles className="h-4 w-4" /> Portfólio de Palestras
                 </a>
               </CardContent>
             </Card>
