@@ -42,6 +42,7 @@ const PAULA_BIO = {
     linkedin: 'https://www.linkedin.com/in/paula-valio-pimenta/',
     instagram: 'https://www.instagram.com/paulavaliopimenta/',
     site: 'https://paulavaliopimenta.com.br/',
+    portfolio: 'https://paula-pimenta-palestrante.vercel.app/',
   },
 };
 
