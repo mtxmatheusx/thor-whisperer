@@ -194,9 +194,22 @@ export default function EventsPage() {
                         <CardContent className="p-3 space-y-2">
                           <div className="flex items-start justify-between gap-2">
                             <p className="font-medium text-sm leading-tight line-clamp-2">{event.name}</p>
-                            <Badge variant="outline" className="text-[10px] shrink-0">
-                              {EVENT_PLATFORM_LABELS[event.platform]}
-                            </Badge>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <Badge variant="outline" className="text-[10px]">
+                                {EVENT_PLATFORM_LABELS[event.platform]}
+                              </Badge>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 text-muted-foreground hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (confirm('Excluir este evento?')) deleteEvent.mutate(event.id);
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </div>
                           {event.event_date && (
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
