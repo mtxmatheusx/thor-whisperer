@@ -542,6 +542,12 @@ Site: ${PAULA_BIO.contact.site}`;
             <span>🌐 paulavaliopimenta.com.br</span>
             <span>🔗 LinkedIn: paula-valio-pimenta</span>
           </div>
+          <div style="margin-top:16px;padding:12px 20px;background:#F8F4EF;border-radius:6px;border-left:4px solid #C47B3B;">
+            <span style="font-size:12px;color:#1B2A4A;font-weight:bold;">🎤 Conheça mais sobre minhas palestras:</span>
+            <a href="https://paula-pimenta-palestrante.vercel.app/" style="display:block;font-size:12px;color:#C47B3B;margin-top:4px;text-decoration:underline;">
+              paula-pimenta-palestrante.vercel.app
+            </a>
+          </div>
         </div>
       `;
       container.appendChild(bioSection);
