@@ -48,6 +48,7 @@ const FALLBACK_PROFILE = {
     instagram: 'https://www.instagram.com/paulavaliopimenta/',
     youtube: 'https://www.youtube.com/@paulavaliopimenta',
     site: 'https://paulavaliopimenta.com.br/',
+    portfolio: 'https://paula-pimenta-palestrante.vercel.app/',
   },
 };
 
