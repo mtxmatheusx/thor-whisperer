@@ -662,7 +662,7 @@ function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) { eventSearch.clearResults(); setDeepScrapeResults({}); } onOpenChange(v); }}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) { eventSearch.clearResults(); } onOpenChange(v); }}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
