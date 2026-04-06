@@ -394,7 +394,11 @@ serve(async (req) => {
     const rawEvents = await searchRealEvents(keywords, location);
 
     // Qualify and build results
-    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
+    const maxDate = new Date(today.getTime() + maxDays * 24 * 60 * 60 * 1000);
+    const maxDateStr = maxDate.toISOString().split("T")[0];
+
     const results: SearchResult[] = rawEvents
       .map((event) => {
         const { score, themes } = qualifyEvent(event, keywords);
@@ -402,10 +406,10 @@ serve(async (req) => {
         const { raw_markdown, ...cleanEvent } = event;
         return { ...cleanEvent, themes, qualification_score: score, fingerprint };
       })
-      // Filter out past events - keep events with future dates or no date (TBD)
+      // Filter: only future events within the period
       .filter((event) => {
-        if (!event.event_date) return true; // Keep events without dates (could be future)
-        return event.event_date >= today;
+        if (!event.event_date) return true;
+        return event.event_date >= todayStr && event.event_date <= maxDateStr;
       });
 
     results.sort((a, b) => b.qualification_score - a.qualification_score);
