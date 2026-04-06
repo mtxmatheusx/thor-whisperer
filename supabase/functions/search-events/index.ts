@@ -73,25 +73,24 @@ async function searchRealEvents(keywords: string[], location?: string): Promise<
     return true;
   });
 
-  // Scrape individual event pages for contact details (top 10)
-  const toScrape = unique.slice(0, 10);
-  for (let i = 0; i < toScrape.length; i++) {
+  // Scrape top 5 event pages in parallel for contact details (limit to avoid timeout)
+  const toScrape = unique.slice(0, 5);
+  const scrapePromises = toScrape.map(async (ev) => {
     try {
-      const scraped = await scrapeEventPage(toScrape[i].platform_url);
-      if (scraped) {
-        toScrape[i].raw_markdown = scraped;
-      }
+      const scraped = await scrapeEventPage(ev.platform_url);
+      if (scraped) ev.raw_markdown = scraped;
     } catch (err) {
-      console.error(`Scrape failed for ${toScrape[i].platform_url}:`, err);
+      console.error(`Scrape failed for ${ev.platform_url}:`, err);
     }
-  }
+  });
+  await Promise.all(scrapePromises);
 
   // Use AI to enrich events with structured data extraction
-  if (LOVABLE_API_KEY && toScrape.length > 0) {
-    return await enrichEventsWithAI(toScrape);
+  if (LOVABLE_API_KEY && unique.length > 0) {
+    return await enrichEventsWithAI(unique);
   }
 
-  return toScrape;
+  return unique;
 }
 
 // ─── Scrape individual event page for contact details ───────────────────────
