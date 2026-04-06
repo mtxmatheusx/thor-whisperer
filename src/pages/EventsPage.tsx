@@ -97,6 +97,16 @@ export default function EventsPage() {
           <p className="text-sm text-muted-foreground">Descubra eventos e envie propostas automaticamente</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={async () => {
+            try {
+              const result = await exportEventsToCSV();
+              toast({ title: 'Exportação concluída', description: `${result.events} eventos e ${result.contacts} contatos exportados` });
+            } catch (err: any) {
+              toast({ title: 'Erro ao exportar', description: err.message, variant: 'destructive' });
+            }
+          }}>
+            <FileSpreadsheet className="mr-2 h-4 w-4" /> Exportar CSV
+          </Button>
           <Button variant="outline" onClick={() => setSearchOpen(true)}>
             <Radar className="mr-2 h-4 w-4" /> Buscar Eventos
           </Button>
