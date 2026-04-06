@@ -52,13 +52,15 @@ export function useEventSearch() {
       keywords,
       platforms,
       location,
+      periodDays,
     }: {
       keywords: string[];
       platforms?: string[];
       location?: string;
+      periodDays?: number;
     }): Promise<SearchResponse> => {
       const { data, error } = await supabase.functions.invoke('search-events', {
-        body: { keywords, platforms, location },
+        body: { keywords, platforms, location, periodDays },
       });
       if (error) throw error;
       return data as SearchResponse;

@@ -624,6 +624,7 @@ function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
   const [keywordInput, setKeywordInput] = useState('');
   const [locationInput, setLocationInput] = useState('');
   const [searchPlatforms, setSearchPlatforms] = useState<string[]>(['eventbrite', 'sympla']);
+  const [periodDays, setPeriodDays] = useState<string>('90');
   const deepScrape = useDeepScrape();
 
   const QUICK_KEYWORDS = [
@@ -637,7 +638,7 @@ function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
       .map(k => k.trim())
       .filter(Boolean);
     if (keywords.length === 0) return;
-    eventSearch.search.mutate({ keywords, platforms: searchPlatforms, location: locationInput || undefined });
+    eventSearch.search.mutate({ keywords, platforms: searchPlatforms, location: locationInput || undefined, periodDays: parseInt(periodDays) });
   };
 
   const addQuickKeyword = (kw: string) => {
@@ -714,22 +715,38 @@ function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
             ))}
           </div>
 
-          {/* Platform toggles */}
-          <div className="flex gap-4">
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox
-                checked={searchPlatforms.includes('eventbrite')}
-                onCheckedChange={() => togglePlatform('eventbrite')}
-              />
-              Eventbrite
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox
-                checked={searchPlatforms.includes('sympla')}
-                onCheckedChange={() => togglePlatform('sympla')}
-              />
-              Sympla
-            </label>
+          {/* Period filter */}
+          <div className="flex flex-wrap items-end gap-4">
+            <div>
+              <Label>Período</Label>
+              <Select value={periodDays} onValueChange={setPeriodDays}>
+                <SelectTrigger className="w-[180px] mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="30">Próximos 30 dias</SelectItem>
+                  <SelectItem value="60">Próximos 60 dias</SelectItem>
+                  <SelectItem value="90">Próximos 90 dias</SelectItem>
+                  <SelectItem value="180">Próximos 6 meses</SelectItem>
+                  <SelectItem value="365">Próximo 1 ano</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Platform toggles */}
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={searchPlatforms.includes('eventbrite')}
+                  onCheckedChange={() => togglePlatform('eventbrite')}
+                />
+                Eventbrite
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={searchPlatforms.includes('sympla')}
+                  onCheckedChange={() => togglePlatform('sympla')}
+                />
+                Sympla
+              </label>
+            </div>
           </div>
         </div>
 
