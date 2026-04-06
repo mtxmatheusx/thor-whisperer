@@ -136,30 +136,53 @@ export function useEventSearch() {
 
       if (error) throw error;
 
-      // 2. Auto-insert contacts for imported events
+      // 2. Auto-insert contacts for imported events (from search + deep scrape)
       const importedEvents = data || [];
-      const contactRows = [];
+      const contactRows: any[] = [];
 
       for (const imported of importedEvents) {
         const original = toImport.find(r => r.fingerprint === imported.fingerprint);
         if (!original) continue;
         
+        // Add organizer contact from search results
         const hasContact = original.organizer_name || original.organizer_email || original.organizer_phone;
-        if (!hasContact) continue;
+        if (hasContact) {
+          contactRows.push({
+            event_id: imported.id,
+            user_id: user.id,
+            name: original.organizer_name || null,
+            role: 'organizer',
+            email: original.organizer_email || null,
+            phone: original.organizer_phone || null,
+            linkedin: original.organizer_linkedin || null,
+            instagram: original.organizer_instagram || null,
+            website: original.organizer_url || null,
+            source: 'ai_discovery',
+            confidence: original.organizer_email ? 'medium' : 'low',
+          });
+        }
 
-        contactRows.push({
-          event_id: imported.id,
-          user_id: user.id,
-          name: original.organizer_name || null,
-          role: 'organizer',
-          email: original.organizer_email || null,
-          phone: original.organizer_phone || null,
-          linkedin: original.organizer_linkedin || null,
-          instagram: original.organizer_instagram || null,
-          website: original.organizer_url || null,
-          source: 'ai_discovery',
-          confidence: original.organizer_email ? 'medium' : 'low',
-        });
+        // Add deep scrape contacts
+        const deepContacts = deepScrapeContacts[original.fingerprint];
+        if (deepContacts && deepContacts.length > 0) {
+          for (const dc of deepContacts) {
+            // Avoid duplicate if same email as organizer
+            if (dc.email && contactRows.some(c => c.event_id === imported.id && c.email === dc.email)) continue;
+            contactRows.push({
+              event_id: imported.id,
+              user_id: user.id,
+              name: dc.name || null,
+              role: dc.role || 'organizer',
+              email: dc.email || null,
+              phone: dc.phone || null,
+              linkedin: dc.linkedin || null,
+              instagram: dc.instagram || null,
+              website: dc.website || null,
+              source: 'deep_scrape',
+              confidence: dc.confidence || 'medium',
+            });
+          }
+        }
       }
 
       if (contactRows.length > 0) {
