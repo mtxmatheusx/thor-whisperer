@@ -198,6 +198,7 @@ export function useEventSearch() {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['event-contact-counts'] });
       const evCount = result.events?.length || 0;
       const ctCount = result.contacts || 0;
       toast({ 
