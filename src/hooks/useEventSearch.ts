@@ -40,6 +40,11 @@ export function useEventSearch() {
   const queryClient = useQueryClient();
   const [results, setResults] = useState<SearchResult[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deepScrapeContacts, setDeepScrapeContacts] = useState<Record<string, DeepScrapeContact[]>>({});
+
+  const addDeepContacts = (fingerprint: string, contacts: DeepScrapeContact[]) => {
+    setDeepScrapeContacts(prev => ({ ...prev, [fingerprint]: contacts }));
+  };
 
   const search = useMutation({
     mutationFn: async ({
