@@ -18,13 +18,16 @@ async function searchRealEvents(keywords: string[], location?: string): Promise<
 
   const locationHint = location || "Brasil";
   const allEvents: RawEvent[] = [];
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const nextYear = currentYear + 1;
 
-  // Search queries targeting real event platforms
+  // Search queries targeting real event platforms - focus on future events
   const queries = [
-    `site:sympla.com.br ${keywords.join(" ")} 2026 ${locationHint}`,
-    `site:eventbrite.com.br ${keywords.join(" ")} 2026 ${locationHint}`,
-    `site:even3.com.br ${keywords.join(" ")} 2026 ${locationHint}`,
-    `${keywords.join(" ")} evento corporativo 2026 ${locationHint} inscrição`,
+    `site:sympla.com.br ${keywords.join(" ")} ${currentYear} ${nextYear} ${locationHint} inscrições abertas`,
+    `site:eventbrite.com.br ${keywords.join(" ")} ${currentYear} ${nextYear} ${locationHint}`,
+    `site:even3.com.br ${keywords.join(" ")} ${currentYear} ${nextYear} ${locationHint}`,
+    `${keywords.join(" ")} evento corporativo ${currentYear} ${nextYear} ${locationHint} inscrição aberta próximo`,
   ];
 
   for (const query of queries) {
@@ -173,12 +176,14 @@ async function enrichEventsWithAI(events: RawEvent[]): Promise<RawEvent[]> {
     `[EVENTO ${i}]\nTítulo: ${ev.name}\nURL: ${ev.platform_url}\nConteúdo:\n${(ev.raw_markdown || ev.description || "").slice(0, 800)}\n`
   ).join("\n---\n");
 
+  const today = new Date().toISOString().split("T")[0];
   const prompt = `Analise os eventos abaixo extraídos de sites REAIS e retorne dados estruturados.
 
 IMPORTANTE:
 - Extraia APENAS informações que estão PRESENTES no conteúdo fornecido
 - Se não encontrar uma informação, use null
 - Datas devem estar no formato YYYY-MM-DD
+- APENAS eventos FUTUROS (data >= ${today}). Se a data for anterior a hoje, retorne event_date como null
 - Emails e telefones devem ser extraídos do conteúdo real, NUNCA invente
 
 ${eventSummaries}
@@ -388,17 +393,24 @@ serve(async (req) => {
     const rawEvents = await searchRealEvents(keywords, location);
 
     // Qualify and build results
-    const results: SearchResult[] = rawEvents.map((event) => {
-      const { score, themes } = qualifyEvent(event, keywords);
-      const fingerprint = `${event.platform}:${event.platform_id || event.name.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 50)}`;
-      // Remove raw_markdown from final output
-      const { raw_markdown, ...cleanEvent } = event;
-      return { ...cleanEvent, themes, qualification_score: score, fingerprint };
-    });
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    const results: SearchResult[] = rawEvents
+      .map((event) => {
+        const { score, themes } = qualifyEvent(event, keywords);
+        const fingerprint = `${event.platform}:${event.platform_id || event.name.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 50)}`;
+        const { raw_markdown, ...cleanEvent } = event;
+        return { ...cleanEvent, themes, qualification_score: score, fingerprint };
+      })
+      // Filter out past events - keep events with future dates or no date (TBD)
+      .filter((event) => {
+        if (!event.event_date) return true; // Keep events without dates (could be future)
+        return event.event_date >= today;
+      });
 
     results.sort((a, b) => b.qualification_score - a.qualification_score);
 
-    console.log(`Found ${results.length} real events`);
+    const filtered_count = rawEvents.length - results.length;
+    console.log(`Found ${results.length} future events (filtered out ${filtered_count} past events)`);
 
     return new Response(
       JSON.stringify({
