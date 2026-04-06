@@ -22,12 +22,13 @@ async function searchRealEvents(keywords: string[], location?: string): Promise<
   const currentYear = now.getFullYear();
   const nextYear = currentYear + 1;
 
-  // Search queries targeting real event platforms - focus on future events
+  // Search queries focused on events/conferences seeking speakers/palestrantes
+  const kw = keywords.join(" ");
   const queries = [
-    `site:sympla.com.br ${keywords.join(" ")} ${currentYear} ${nextYear} ${locationHint} inscrições abertas`,
-    `site:eventbrite.com.br ${keywords.join(" ")} ${currentYear} ${nextYear} ${locationHint}`,
-    `site:even3.com.br ${keywords.join(" ")} ${currentYear} ${nextYear} ${locationHint}`,
-    `${keywords.join(" ")} evento corporativo ${currentYear} ${nextYear} ${locationHint} inscrição aberta próximo`,
+    `site:sympla.com.br ${kw} evento palestra congresso ${currentYear} ${locationHint}`,
+    `site:eventbrite.com.br ${kw} evento conferência palestra ${currentYear} ${locationHint}`,
+    `${kw} evento corporativo palestra palestrante congresso summit ${currentYear} ${locationHint} inscrição`,
+    `${kw} "chamada de palestrantes" OR "submissão de palestras" OR "call for speakers" ${currentYear} ${locationHint}`,
   ];
 
   for (const query of queries) {
