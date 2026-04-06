@@ -22,12 +22,13 @@ async function searchRealEvents(keywords: string[], location?: string): Promise<
   const currentYear = now.getFullYear();
   const nextYear = currentYear + 1;
 
-  // Search queries targeting real event platforms - focus on future events
+  // Search queries focused on events/conferences seeking speakers/palestrantes
+  const kw = keywords.join(" ");
   const queries = [
-    `site:sympla.com.br ${keywords.join(" ")} ${currentYear} ${nextYear} ${locationHint} inscrições abertas`,
-    `site:eventbrite.com.br ${keywords.join(" ")} ${currentYear} ${nextYear} ${locationHint}`,
-    `site:even3.com.br ${keywords.join(" ")} ${currentYear} ${nextYear} ${locationHint}`,
-    `${keywords.join(" ")} evento corporativo ${currentYear} ${nextYear} ${locationHint} inscrição aberta próximo`,
+    `site:sympla.com.br ${kw} evento palestra congresso ${currentYear} ${locationHint}`,
+    `site:eventbrite.com.br ${kw} evento conferência palestra ${currentYear} ${locationHint}`,
+    `${kw} evento corporativo palestra palestrante congresso summit ${currentYear} ${locationHint} inscrição`,
+    `${kw} "chamada de palestrantes" OR "submissão de palestras" OR "call for speakers" ${currentYear} ${locationHint}`,
   ];
 
   for (const query of queries) {
@@ -177,22 +178,26 @@ async function enrichEventsWithAI(events: RawEvent[]): Promise<RawEvent[]> {
   ).join("\n---\n");
 
   const today = new Date().toISOString().split("T")[0];
-  const prompt = `Analise os eventos abaixo extraídos de sites REAIS e retorne dados estruturados.
+  const prompt = `Analise os eventos abaixo extraídos de sites REAIS. O OBJETIVO é encontrar eventos e palestras corporativas onde uma PALESTRANTE especialista possa ser contratada.
+
+CONTEXTO: Estamos prospectando oportunidades para vender palestras. Precisamos de eventos que ACEITEM ou CONTRATEM palestrantes.
 
 IMPORTANTE:
-- Extraia APENAS informações que estão PRESENTES no conteúdo fornecido
+- Extraia APENAS informações PRESENTES no conteúdo fornecido
 - Se não encontrar uma informação, use null
 - Datas devem estar no formato YYYY-MM-DD
 - APENAS eventos FUTUROS (data >= ${today}). Se a data for anterior a hoje, retorne event_date como null
 - Emails e telefones devem ser extraídos do conteúdo real, NUNCA invente
+- Se o resultado NÃO for um evento/palestra/congresso/summit/workshop (ex: artigo, notícia, curso EAD), marque is_relevant como false
 
 ${eventSummaries}
 
 Para CADA evento, retorne um JSON com:
 {
   "index": 0,
-  "event_date": "2026-MM-DD ou null",
-  "event_end_date": "2026-MM-DD ou null",
+  "is_relevant": true,
+  "event_date": "YYYY-MM-DD ou null",
+  "event_end_date": "YYYY-MM-DD ou null",
   "location_city": "Cidade ou null",
   "location_state": "UF ou null",
   "location_venue": "Local ou null",
@@ -205,7 +210,8 @@ Para CADA evento, retorne um JSON com:
   "organizer_phone": "telefone ou null",
   "organizer_url": "site ou null",
   "organizer_linkedin": "url ou null",
-  "organizer_instagram": "url ou null"
+  "organizer_instagram": "url ou null",
+  "accepts_speakers": true
 }
 
 Retorne APENAS um JSON array válido. Sem markdown, sem explicação.`;
@@ -242,9 +248,14 @@ Retorne APENAS um JSON array válido. Sem markdown, sem explicação.`;
     const enrichments = JSON.parse(jsonStr);
     if (!Array.isArray(enrichments)) return events;
 
+    const irrelevantIndices = new Set<number>();
     for (const enrichment of enrichments) {
       const idx = enrichment.index;
       if (idx >= 0 && idx < events.length) {
+        if (enrichment.is_relevant === false) {
+          irrelevantIndices.add(idx);
+          continue;
+        }
         const ev = events[idx];
         ev.event_date = enrichment.event_date || ev.event_date;
         ev.event_end_date = enrichment.event_end_date || ev.event_end_date;
@@ -264,7 +275,7 @@ Retorne APENAS um JSON array válido. Sem markdown, sem explicação.`;
       }
     }
 
-    return events;
+    return events.filter((_, i) => !irrelevantIndices.has(i));
   } catch (err) {
     console.error("AI enrichment error:", err);
     return events;
