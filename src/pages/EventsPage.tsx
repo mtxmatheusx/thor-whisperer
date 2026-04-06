@@ -625,7 +625,6 @@ function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
   const [locationInput, setLocationInput] = useState('');
   const [searchPlatforms, setSearchPlatforms] = useState<string[]>(['eventbrite', 'sympla']);
   const deepScrape = useDeepScrape();
-  const [deepScrapeResults, setDeepScrapeResults] = useState<Record<string, DeepScrapeContact[]>>({});
 
   const QUICK_KEYWORDS = [
     'liderança', 'gestão', 'RH', 'cultura organizacional',
