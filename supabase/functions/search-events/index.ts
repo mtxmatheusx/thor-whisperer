@@ -18,13 +18,16 @@ async function searchRealEvents(keywords: string[], location?: string): Promise<
 
   const locationHint = location || "Brasil";
   const allEvents: RawEvent[] = [];
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const nextYear = currentYear + 1;
 
-  // Search queries targeting real event platforms
+  // Search queries targeting real event platforms - focus on future events
   const queries = [
-    `site:sympla.com.br ${keywords.join(" ")} 2026 ${locationHint}`,
-    `site:eventbrite.com.br ${keywords.join(" ")} 2026 ${locationHint}`,
-    `site:even3.com.br ${keywords.join(" ")} 2026 ${locationHint}`,
-    `${keywords.join(" ")} evento corporativo 2026 ${locationHint} inscrição`,
+    `site:sympla.com.br ${keywords.join(" ")} ${currentYear} ${nextYear} ${locationHint} inscrições abertas`,
+    `site:eventbrite.com.br ${keywords.join(" ")} ${currentYear} ${nextYear} ${locationHint}`,
+    `site:even3.com.br ${keywords.join(" ")} ${currentYear} ${nextYear} ${locationHint}`,
+    `${keywords.join(" ")} evento corporativo ${currentYear} ${nextYear} ${locationHint} inscrição aberta próximo`,
   ];
 
   for (const query of queries) {
