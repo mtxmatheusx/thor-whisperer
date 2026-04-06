@@ -757,7 +757,7 @@ function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
                   onToggle={() => eventSearch.toggleSelect(ev.fingerprint)}
                   onDeepScrape={() => handleDeepScrape(ev)}
                   isScraping={deepScrape.isScrapingUrl(ev.platform_url)}
-                  deepContacts={deepScrapeResults[ev.fingerprint]}
+                  deepContacts={eventSearch.deepScrapeContacts[ev.fingerprint]}
                 />
               ))}
             </div>
