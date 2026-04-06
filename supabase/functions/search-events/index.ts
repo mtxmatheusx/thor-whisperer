@@ -6,55 +6,159 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-// ─── Search events using Lovable AI Gateway ──────────────────────────────────
-async function searchEventsViaAI(keywords: string[], location?: string): Promise<RawEvent[]> {
-  if (!LOVABLE_API_KEY) {
-    console.error("LOVABLE_API_KEY not configured");
+// ─── Search real events using Firecrawl ─────────────────────────────────────
+async function searchRealEvents(keywords: string[], location?: string): Promise<RawEvent[]> {
+  if (!FIRECRAWL_API_KEY) {
+    console.error("FIRECRAWL_API_KEY not configured");
     return [];
   }
 
-  const query = keywords.join(", ");
-  const locationHint = location ? ` na região de ${location}` : " no Brasil";
+  const locationHint = location || "Brasil";
+  const allEvents: RawEvent[] = [];
 
-  const prompt = `Pesquise eventos corporativos REAIS de 2026${locationHint} sobre: ${query}
+  // Search queries targeting real event platforms
+  const queries = [
+    `site:sympla.com.br ${keywords.join(" ")} 2026 ${locationHint}`,
+    `site:eventbrite.com.br ${keywords.join(" ")} 2026 ${locationHint}`,
+    `site:even3.com.br ${keywords.join(" ")} 2026 ${locationHint}`,
+    `${keywords.join(" ")} evento corporativo 2026 ${locationHint} inscrição`,
+  ];
 
-INSTRUÇÕES OBRIGATÓRIAS:
-1. Busque APENAS eventos que acontecem em 2026 ou que ainda não têm data definida para 2026
-2. Pesquise em: Sympla, Eventbrite, Even3, sites oficiais de congressos, conferências e summits
-3. Para cada evento, extraia os DADOS DE CONTATO REAIS do organizador — busque na página do evento, no rodapé, na seção "sobre o organizador", "contato", etc.
-4. NÃO INVENTE dados. Se não encontrar email ou telefone, deixe null.
-5. Retorne entre 5 e 20 eventos relevantes
+  for (const query of queries) {
+    try {
+      console.log(`Searching: ${query}`);
+      const response = await fetch("https://api.firecrawl.dev/v1/search", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query,
+          limit: 5,
+          lang: "pt-br",
+          country: "br",
+          scrapeOptions: { formats: ["markdown"] },
+        }),
+      });
 
-Para CADA evento retorne este JSON:
-{
-  "name": "Nome do evento",
-  "description": "Descrição breve (max 200 chars)",
-  "platform": "sympla|eventbrite|even3|google",
-  "platform_url": "URL COMPLETA e REAL do evento",
-  "event_date": "2026-MM-DD ou null",
-  "event_end_date": "2026-MM-DD ou null",
-  "location_city": "Cidade",
-  "location_state": "UF",
-  "location_venue": "Local/Venue",
-  "is_online": false,
-  "estimated_audience": 500,
-  "ticket_price_range": "free|low|medium|high",
-  "category": "conference|workshop|summit|forum|seminar|congress|other",
-  "organizer_name": "Nome do organizador ou empresa organizadora",
-  "organizer_email": "email@real.com ou null",
-  "organizer_phone": "55119XXXXXXXX ou null",
-  "organizer_url": "https://site-do-organizador.com ou null",
-  "organizer_linkedin": "https://linkedin.com/company/... ou null",
-  "organizer_instagram": "https://instagram.com/... ou null"
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error(`Firecrawl search error ${response.status}: ${errText}`);
+        continue;
+      }
+
+      const data = await response.json();
+      const results = data.data || [];
+
+      for (const result of results) {
+        const event = parseSearchResult(result);
+        if (event) {
+          allEvents.push(event);
+        }
+      }
+    } catch (err) {
+      console.error(`Search failed for query "${query}":`, err);
+    }
+  }
+
+  // Deduplicate by URL
+  const seen = new Set<string>();
+  const unique = allEvents.filter((ev) => {
+    if (seen.has(ev.platform_url)) return false;
+    seen.add(ev.platform_url);
+    return true;
+  });
+
+  // Use AI to enrich events with structured data extraction
+  if (LOVABLE_API_KEY && unique.length > 0) {
+    return await enrichEventsWithAI(unique);
+  }
+
+  return unique;
 }
 
-PRIORIZE eventos sobre: ${query}
-FOCO: eventos corporativos, conferências, summits, congressos, fóruns de negócios
-CONTATOS: busque email, telefone, WhatsApp, site e redes sociais do organizador
+// ─── Parse a Firecrawl search result into a RawEvent ────────────────────────
+function parseSearchResult(result: any): RawEvent | null {
+  const url = result.url || "";
+  const title = result.title || "";
+  const markdown = result.markdown || result.description || "";
 
-Retorne APENAS um JSON array válido. Sem markdown, sem explicação, sem texto adicional.`;
+  if (!url || !title) return null;
+
+  // Determine platform from URL
+  const platform = detectPlatform(url);
+
+  // Extract basic info from title and content
+  const description = (result.description || markdown.slice(0, 300)).replace(/\n/g, " ").trim();
+
+  return {
+    name: title.slice(0, 200),
+    description: description.slice(0, 500),
+    platform,
+    platform_id: extractIdFromUrl(url),
+    platform_url: url,
+    event_date: null,
+    event_end_date: null,
+    location_city: "",
+    location_state: "",
+    location_venue: "",
+    is_online: false,
+    estimated_audience: null,
+    ticket_price_range: "medium",
+    category: inferCategory(title),
+    organizer_name: null,
+    organizer_url: null,
+    organizer_email: null,
+    organizer_phone: null,
+    organizer_linkedin: null,
+    organizer_instagram: null,
+    raw_markdown: markdown,
+  };
+}
+
+// ─── Use AI to extract structured data from scraped content ─────────────────
+async function enrichEventsWithAI(events: RawEvent[]): Promise<RawEvent[]> {
+  if (!LOVABLE_API_KEY) return events;
+
+  const eventSummaries = events.map((ev, i) => 
+    `[EVENTO ${i}]\nTítulo: ${ev.name}\nURL: ${ev.platform_url}\nConteúdo:\n${(ev.raw_markdown || ev.description || "").slice(0, 800)}\n`
+  ).join("\n---\n");
+
+  const prompt = `Analise os eventos abaixo extraídos de sites REAIS e retorne dados estruturados.
+
+IMPORTANTE:
+- Extraia APENAS informações que estão PRESENTES no conteúdo fornecido
+- Se não encontrar uma informação, use null
+- Datas devem estar no formato YYYY-MM-DD
+- Emails e telefones devem ser extraídos do conteúdo real, NUNCA invente
+
+${eventSummaries}
+
+Para CADA evento, retorne um JSON com:
+{
+  "index": 0,
+  "event_date": "2026-MM-DD ou null",
+  "event_end_date": "2026-MM-DD ou null",
+  "location_city": "Cidade ou null",
+  "location_state": "UF ou null",
+  "location_venue": "Local ou null",
+  "is_online": false,
+  "estimated_audience": null,
+  "ticket_price_range": "free|low|medium|high",
+  "category": "conference|workshop|summit|forum|seminar|congress|other",
+  "organizer_name": "nome ou null",
+  "organizer_email": "email ou null",
+  "organizer_phone": "telefone ou null",
+  "organizer_url": "site ou null",
+  "organizer_linkedin": "url ou null",
+  "organizer_instagram": "url ou null"
+}
+
+Retorne APENAS um JSON array válido. Sem markdown, sem explicação.`;
 
   try {
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -66,77 +170,63 @@ Retorne APENAS um JSON array válido. Sem markdown, sem explicação, sem texto 
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          {
-            role: "system",
-            content: "Você é um pesquisador especialista em encontrar eventos corporativos no Brasil. Retorne APENAS JSON válido, sem texto adicional. Foque em eventos de 2026. Extraia dados de contato reais dos organizadores.",
-          },
+          { role: "system", content: "Você extrai dados estruturados de conteúdo de páginas web. Retorne APENAS JSON válido. Nunca invente dados — extraia apenas o que está presente no texto." },
           { role: "user", content: prompt },
         ],
       }),
     });
 
     if (!res.ok) {
-      const errText = await res.text();
-      console.error(`AI Gateway error ${res.status}: ${errText}`);
-      return [];
+      console.error(`AI enrichment failed: ${res.status}`);
+      return events;
     }
 
     const data = await res.json();
     const text = data.choices?.[0]?.message?.content || "";
 
-    if (!text) {
-      console.error("AI returned empty response");
-      return [];
-    }
-
-    // Parse JSON from response (handle markdown code blocks)
     let jsonStr = text.trim();
     if (jsonStr.startsWith("```")) {
       jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
     }
 
-    try {
-      const events = JSON.parse(jsonStr);
-      if (!Array.isArray(events)) return [];
+    const enrichments = JSON.parse(jsonStr);
+    if (!Array.isArray(enrichments)) return events;
 
-      return events.map((ev: any) => ({
-        name: ev.name || "Sem nome",
-        description: (ev.description || "").slice(0, 500),
-        platform: mapPlatform(ev.platform || ev.platform_url || "google"),
-        platform_id: extractIdFromUrl(ev.platform_url || ""),
-        platform_url: ev.platform_url || "",
-        event_date: ev.event_date || null,
-        event_end_date: ev.event_end_date || null,
-        location_city: ev.location_city || "",
-        location_state: ev.location_state || "",
-        location_venue: ev.location_venue || "",
-        is_online: ev.is_online || false,
-        estimated_audience: ev.estimated_audience || null,
-        ticket_price_range: ev.ticket_price_range || "medium",
-        category: ev.category || inferCategory(ev.name || ""),
-        organizer_name: ev.organizer_name || null,
-        organizer_url: ev.organizer_url || null,
-        organizer_email: ev.organizer_email || null,
-        organizer_phone: ev.organizer_phone || null,
-        organizer_linkedin: ev.organizer_linkedin || null,
-        organizer_instagram: ev.organizer_instagram || null,
-      }));
-    } catch (parseErr) {
-      console.error("Failed to parse AI response:", parseErr, "Raw:", jsonStr.slice(0, 500));
-      return [];
+    for (const enrichment of enrichments) {
+      const idx = enrichment.index;
+      if (idx >= 0 && idx < events.length) {
+        const ev = events[idx];
+        ev.event_date = enrichment.event_date || ev.event_date;
+        ev.event_end_date = enrichment.event_end_date || ev.event_end_date;
+        ev.location_city = enrichment.location_city || ev.location_city;
+        ev.location_state = enrichment.location_state || ev.location_state;
+        ev.location_venue = enrichment.location_venue || ev.location_venue;
+        ev.is_online = enrichment.is_online ?? ev.is_online;
+        ev.estimated_audience = enrichment.estimated_audience || ev.estimated_audience;
+        ev.ticket_price_range = enrichment.ticket_price_range || ev.ticket_price_range;
+        ev.category = enrichment.category || ev.category;
+        ev.organizer_name = enrichment.organizer_name || ev.organizer_name;
+        ev.organizer_email = enrichment.organizer_email || ev.organizer_email;
+        ev.organizer_phone = enrichment.organizer_phone || ev.organizer_phone;
+        ev.organizer_url = enrichment.organizer_url || ev.organizer_url;
+        ev.organizer_linkedin = enrichment.organizer_linkedin || ev.organizer_linkedin;
+        ev.organizer_instagram = enrichment.organizer_instagram || ev.organizer_instagram;
+      }
     }
+
+    return events;
   } catch (err) {
-    console.error("AI search failed:", err);
-    return [];
+    console.error("AI enrichment error:", err);
+    return events;
   }
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-function mapPlatform(input: string): string {
-  const lower = (input || "").toLowerCase();
-  if (lower.includes("sympla")) return "sympla";
-  if (lower.includes("eventbrite")) return "eventbrite";
-  if (lower.includes("even3")) return "even3";
+function detectPlatform(url: string): string {
+  const lower = url.toLowerCase();
+  if (lower.includes("sympla.com")) return "sympla";
+  if (lower.includes("eventbrite.com")) return "eventbrite";
+  if (lower.includes("even3.com")) return "even3";
   return "google";
 }
 
@@ -159,14 +249,12 @@ function inferCategory(name: string): string {
 
 // ─── Theme matching & qualification ─────────────────────────────────────────
 const THEME_KEYWORDS: Record<string, string[]> = {
-  lideranca: ["liderança", "líder", "lider", "leadership", "gestão de pessoas", "C-level", "CEO", "executive"],
-  gestao: ["gestão", "gestao", "management", "administração", "governança", "processos"],
-  rh: ["rh", "recursos humanos", "people", "talent", "gente e gestão", "cultura organizacional", "employer branding", "recrutamento"],
-  cultura: ["cultura organizacional", "cultura corporativa", "employee experience", "engajamento", "clima organizacional"],
-  inovacao: ["inovação", "inovacao", "innovation", "transformação digital", "digital", "futuro do trabalho"],
-  estrategia: ["estratégia", "estrategia", "strategy", "planejamento", "OKR", "metas"],
+  lideranca: ["liderança", "líder", "lider", "leadership", "gestão de pessoas", "C-level", "CEO"],
+  gestao: ["gestão", "gestao", "management", "administração", "governança"],
+  rh: ["rh", "recursos humanos", "people", "talent", "gente e gestão", "employer branding"],
+  inovacao: ["inovação", "inovacao", "innovation", "transformação digital", "futuro do trabalho"],
   vendas: ["vendas", "sales", "comercial", "negociação", "prospecção"],
-  marketing: ["marketing", "branding", "comunicação", "marca", "growth"],
+  marketing: ["marketing", "branding", "comunicação", "growth"],
   tecnologia: ["tecnologia", "tech", "TI", "software", "IA", "inteligência artificial", "AI"],
   empreendedorismo: ["empreendedorismo", "startup", "empreender", "negócio", "business"],
 };
@@ -187,27 +275,18 @@ function qualifyEvent(event: RawEvent, searchKeywords: string[]): { score: numbe
   const themes = matchThemes(fullText);
   let score = 0;
 
-  // Theme relevance (0-40)
   score += Math.min(themes.length * 15, 40);
 
-  // Keyword match (0-25)
   const keywordMatches = searchKeywords.filter((kw) => fullText.includes(kw.toLowerCase())).length;
-  score += Math.min((keywordMatches / searchKeywords.length) * 25, 25);
+  score += Math.min((keywordMatches / Math.max(searchKeywords.length, 1)) * 25, 25);
 
-  // Category bonus (0-15)
   if (["conference", "congress", "summit", "forum"].includes(event.category)) score += 15;
   else if (["seminar", "workshop"].includes(event.category)) score += 10;
 
-  // Has URL (0-5)
   if (event.platform_url) score += 5;
-
-  // Has organizer info (0-15)
   if (event.organizer_name) score += 5;
   if (event.organizer_email) score += 5;
   if (event.organizer_phone) score += 5;
-
-  // Audience size (0-5)
-  if (event.estimated_audience && event.estimated_audience >= 200) score += 5;
 
   return { score: Math.min(score, 100), themes };
 }
@@ -234,6 +313,7 @@ interface RawEvent {
   organizer_phone: string | null;
   organizer_linkedin: string | null;
   organizer_instagram: string | null;
+  raw_markdown?: string;
 }
 
 interface SearchResult extends RawEvent {
@@ -258,24 +338,30 @@ serve(async (req) => {
       );
     }
 
-    const rawEvents = await searchEventsViaAI(keywords, location);
+    console.log(`Searching real events for: ${keywords.join(", ")} in ${location || "Brasil"}`);
+
+    const rawEvents = await searchRealEvents(keywords, location);
 
     // Qualify and build results
     const results: SearchResult[] = rawEvents.map((event) => {
       const { score, themes } = qualifyEvent(event, keywords);
       const fingerprint = `${event.platform}:${event.platform_id || event.name.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 50)}`;
-      return { ...event, themes, qualification_score: score, fingerprint };
+      // Remove raw_markdown from final output
+      const { raw_markdown, ...cleanEvent } = event;
+      return { ...cleanEvent, themes, qualification_score: score, fingerprint };
     });
 
-    // Sort by qualification score descending
     results.sort((a, b) => b.qualification_score - a.qualification_score);
+
+    console.log(`Found ${results.length} real events`);
 
     return new Response(
       JSON.stringify({
         events: results,
         total: results.length,
-        platforms_searched: ["google", "sympla", "eventbrite", "even3"],
+        platforms_searched: ["sympla", "eventbrite", "even3", "google"],
         keywords,
+        source: "firecrawl_real_data",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
