@@ -73,12 +73,25 @@ async function searchRealEvents(keywords: string[], location?: string): Promise<
     return true;
   });
 
-  // Use AI to enrich events with structured data extraction
-  if (LOVABLE_API_KEY && unique.length > 0) {
-    return await enrichEventsWithAI(unique);
+  // Scrape individual event pages for contact details (top 10)
+  const toScrape = unique.slice(0, 10);
+  for (let i = 0; i < toScrape.length; i++) {
+    try {
+      const scraped = await scrapeEventPage(toScrape[i].platform_url);
+      if (scraped) {
+        toScrape[i].raw_markdown = scraped;
+      }
+    } catch (err) {
+      console.error(`Scrape failed for ${toScrape[i].platform_url}:`, err);
+    }
   }
 
-  return unique;
+  // Use AI to enrich events with structured data extraction
+  if (LOVABLE_API_KEY && toScrape.length > 0) {
+    return await enrichEventsWithAI(toScrape);
+  }
+
+  return toScrape;
 }
 
 // ─── Parse a Firecrawl search result into a RawEvent ────────────────────────
