@@ -763,7 +763,7 @@ function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => { eventSearch.clearResults(); setDeepScrapeResults({}); onOpenChange(false); }}>
+              <Button variant="outline" onClick={() => { eventSearch.clearResults(); onOpenChange(false); }}>
                 Cancelar
               </Button>
               <Button
