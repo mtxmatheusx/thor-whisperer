@@ -176,12 +176,14 @@ async function enrichEventsWithAI(events: RawEvent[]): Promise<RawEvent[]> {
     `[EVENTO ${i}]\nTítulo: ${ev.name}\nURL: ${ev.platform_url}\nConteúdo:\n${(ev.raw_markdown || ev.description || "").slice(0, 800)}\n`
   ).join("\n---\n");
 
+  const today = new Date().toISOString().split("T")[0];
   const prompt = `Analise os eventos abaixo extraídos de sites REAIS e retorne dados estruturados.
 
 IMPORTANTE:
 - Extraia APENAS informações que estão PRESENTES no conteúdo fornecido
 - Se não encontrar uma informação, use null
 - Datas devem estar no formato YYYY-MM-DD
+- APENAS eventos FUTUROS (data >= ${today}). Se a data for anterior a hoje, retorne event_date como null
 - Emails e telefones devem ser extraídos do conteúdo real, NUNCA invente
 
 ${eventSummaries}
