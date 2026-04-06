@@ -637,7 +637,6 @@ function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
       .map(k => k.trim())
       .filter(Boolean);
     if (keywords.length === 0) return;
-    setDeepScrapeResults({});
     eventSearch.search.mutate({ keywords, platforms: searchPlatforms, location: locationInput || undefined });
   };
 
