@@ -275,7 +275,7 @@ Retorne APENAS um JSON array válido. Sem markdown, sem explicação.`;
       }
     }
 
-    return events;
+    return events.filter((_, i) => !irrelevantIndices.has(i));
   } catch (err) {
     console.error("AI enrichment error:", err);
     return events;
