@@ -657,7 +657,7 @@ function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
     if (!ev.platform_url) return;
     const contacts = await deepScrape.scrapeEvent(ev.platform_url, ev.name);
     if (contacts && contacts.length > 0) {
-      setDeepScrapeResults(prev => ({ ...prev, [ev.fingerprint]: contacts }));
+      eventSearch.addDeepContacts(ev.fingerprint, contacts);
     }
   };
 
