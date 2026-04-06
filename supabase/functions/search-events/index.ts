@@ -94,7 +94,40 @@ async function searchRealEvents(keywords: string[], location?: string): Promise<
   return toScrape;
 }
 
-// ─── Parse a Firecrawl search result into a RawEvent ────────────────────────
+// ─── Scrape individual event page for contact details ───────────────────────
+async function scrapeEventPage(url: string): Promise<string | null> {
+  if (!FIRECRAWL_API_KEY || !url) return null;
+
+  try {
+    const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        url,
+        formats: ["markdown"],
+        onlyMainContent: false, // Get full page to find contact info in footer/sidebar
+        waitFor: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`Scrape error for ${url}: ${response.status} ${errText}`);
+      return null;
+    }
+
+    const data = await response.json();
+    return data.data?.markdown || data.markdown || null;
+  } catch (err) {
+    console.error(`Scrape failed for ${url}:`, err);
+    return null;
+  }
+}
+
+
 function parseSearchResult(result: any): RawEvent | null {
   const url = result.url || "";
   const title = result.title || "";
