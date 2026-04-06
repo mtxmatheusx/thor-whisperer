@@ -159,6 +159,7 @@ export function useEvents() {
 
   return {
     events,
+    contactCounts,
     isLoading,
     error,
     createEvent,
