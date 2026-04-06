@@ -21,8 +21,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   Plus, Search, Trash2, Loader2, Calendar, MapPin, Users, ExternalLink,
   ArrowRightLeft, Eye, UserPlus, Globe, Star, Radar, Download, CheckCheck,
-  Mail, Phone, Contact, Linkedin, Instagram, ScanSearch,
+  Mail, Phone, Contact, Linkedin, Instagram, ScanSearch, FileSpreadsheet,
 } from 'lucide-react';
+import { exportEventsToCSV } from '@/lib/exportEvents';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
