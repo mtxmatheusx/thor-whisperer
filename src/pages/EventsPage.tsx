@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useEvents, useEventContacts } from '@/hooks/useEvents';
 import { useEventSearch, SearchResult } from '@/hooks/useEventSearch';
+import { useDeepScrape, DeepScrapeContact } from '@/hooks/useDeepScrape';
 import {
   ProspectEvent, EventContact, EventPipelineStatus, EventPlatform,
   EVENT_PIPELINE_LABELS, EVENT_PIPELINE_COLORS, EVENT_PLATFORM_LABELS,
@@ -20,7 +21,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   Plus, Search, Trash2, Loader2, Calendar, MapPin, Users, ExternalLink,
   ArrowRightLeft, Eye, UserPlus, Globe, Star, Radar, Download, CheckCheck,
-  Mail, Phone, Contact,
+  Mail, Phone, Contact, Linkedin, Instagram, ScanSearch,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
