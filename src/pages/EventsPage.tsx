@@ -638,7 +638,7 @@ function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
       .map(k => k.trim())
       .filter(Boolean);
     if (keywords.length === 0) return;
-    eventSearch.search.mutate({ keywords, platforms: searchPlatforms, location: locationInput || undefined });
+    eventSearch.search.mutate({ keywords, platforms: searchPlatforms, location: locationInput || undefined, periodDays: parseInt(periodDays) });
   };
 
   const addQuickKeyword = (kw: string) => {
