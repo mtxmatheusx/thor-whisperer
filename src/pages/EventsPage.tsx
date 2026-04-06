@@ -624,6 +624,7 @@ function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
   const [keywordInput, setKeywordInput] = useState('');
   const [locationInput, setLocationInput] = useState('');
   const [searchPlatforms, setSearchPlatforms] = useState<string[]>(['eventbrite', 'sympla']);
+  const [periodDays, setPeriodDays] = useState<string>('90');
   const deepScrape = useDeepScrape();
 
   const QUICK_KEYWORDS = [
