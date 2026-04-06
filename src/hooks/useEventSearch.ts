@@ -219,17 +219,20 @@ export function useEventSearch() {
   const clearResults = () => {
     setResults([]);
     setSelectedIds(new Set());
+    setDeepScrapeContacts({});
   };
 
   return {
     results,
     selectedIds,
+    deepScrapeContacts,
     search,
     toggleSelect,
     selectAll,
     deselectAll,
     importSelected,
     clearResults,
+    addDeepContacts,
     isSearching: search.isPending,
     isImporting: importSelected.isPending,
   };
