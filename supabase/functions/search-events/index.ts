@@ -248,9 +248,14 @@ Retorne APENAS um JSON array válido. Sem markdown, sem explicação.`;
     const enrichments = JSON.parse(jsonStr);
     if (!Array.isArray(enrichments)) return events;
 
+    const irrelevantIndices = new Set<number>();
     for (const enrichment of enrichments) {
       const idx = enrichment.index;
       if (idx >= 0 && idx < events.length) {
+        if (enrichment.is_relevant === false) {
+          irrelevantIndices.add(idx);
+          continue;
+        }
         const ev = events[idx];
         ev.event_date = enrichment.event_date || ev.event_date;
         ev.event_end_date = enrichment.event_end_date || ev.event_end_date;
