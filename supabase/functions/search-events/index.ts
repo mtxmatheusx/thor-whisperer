@@ -391,17 +391,24 @@ serve(async (req) => {
     const rawEvents = await searchRealEvents(keywords, location);
 
     // Qualify and build results
-    const results: SearchResult[] = rawEvents.map((event) => {
-      const { score, themes } = qualifyEvent(event, keywords);
-      const fingerprint = `${event.platform}:${event.platform_id || event.name.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 50)}`;
-      // Remove raw_markdown from final output
-      const { raw_markdown, ...cleanEvent } = event;
-      return { ...cleanEvent, themes, qualification_score: score, fingerprint };
-    });
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    const results: SearchResult[] = rawEvents
+      .map((event) => {
+        const { score, themes } = qualifyEvent(event, keywords);
+        const fingerprint = `${event.platform}:${event.platform_id || event.name.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 50)}`;
+        const { raw_markdown, ...cleanEvent } = event;
+        return { ...cleanEvent, themes, qualification_score: score, fingerprint };
+      })
+      // Filter out past events - keep events with future dates or no date (TBD)
+      .filter((event) => {
+        if (!event.event_date) return true; // Keep events without dates (could be future)
+        return event.event_date >= today;
+      });
 
     results.sort((a, b) => b.qualification_score - a.qualification_score);
 
-    console.log(`Found ${results.length} real events`);
+    const filtered_count = rawEvents.length - results.length;
+    console.log(`Found ${results.length} future events (filtered out ${filtered_count} past events)`);
 
     return new Response(
       JSON.stringify({
