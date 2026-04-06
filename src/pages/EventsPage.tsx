@@ -616,7 +616,10 @@ function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
   eventSearch: ReturnType<typeof import('@/hooks/useEventSearch').useEventSearch>;
 }) {
   const [keywordInput, setKeywordInput] = useState('');
+  const [locationInput, setLocationInput] = useState('');
   const [searchPlatforms, setSearchPlatforms] = useState<string[]>(['eventbrite', 'sympla']);
+  const deepScrape = useDeepScrape();
+  const [deepScrapeResults, setDeepScrapeResults] = useState<Record<string, DeepScrapeContact[]>>({});
 
   const QUICK_KEYWORDS = [
     'liderança', 'gestão', 'RH', 'cultura organizacional',
@@ -629,7 +632,8 @@ function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
       .map(k => k.trim())
       .filter(Boolean);
     if (keywords.length === 0) return;
-    eventSearch.search.mutate({ keywords, platforms: searchPlatforms });
+    setDeepScrapeResults({});
+    eventSearch.search.mutate({ keywords, platforms: searchPlatforms, location: locationInput || undefined });
   };
 
   const addQuickKeyword = (kw: string) => {
@@ -645,15 +649,23 @@ function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
     );
   };
 
+  const handleDeepScrape = async (ev: SearchResult) => {
+    if (!ev.platform_url) return;
+    const contacts = await deepScrape.scrapeEvent(ev.platform_url, ev.name);
+    if (contacts && contacts.length > 0) {
+      setDeepScrapeResults(prev => ({ ...prev, [ev.fingerprint]: contacts }));
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) eventSearch.clearResults(); onOpenChange(v); }}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) { eventSearch.clearResults(); setDeepScrapeResults({}); } onOpenChange(v); }}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Radar className="h-5 w-5" /> Buscar Eventos nas Plataformas
+            <Radar className="h-5 w-5" /> Buscar Eventos Reais
           </DialogTitle>
           <DialogDescription>
-            Thor busca eventos no Eventbrite e Sympla por palavras-chave e qualifica automaticamente.
+            Busca eventos reais no Sympla, Eventbrite e Google via Firecrawl com extração de contatos.
           </DialogDescription>
         </DialogHeader>
 
@@ -672,6 +684,16 @@ function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
                 {eventSearch.isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               </Button>
             </div>
+          </div>
+
+          <div>
+            <Label>Localização (opcional)</Label>
+            <Input
+              placeholder="São Paulo, Rio de Janeiro, Brasil..."
+              value={locationInput}
+              onChange={e => setLocationInput(e.target.value)}
+              className="mt-1"
+            />
           </div>
 
           {/* Quick keywords */}
@@ -729,12 +751,15 @@ function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
                   event={ev}
                   selected={eventSearch.selectedIds.has(ev.fingerprint)}
                   onToggle={() => eventSearch.toggleSelect(ev.fingerprint)}
+                  onDeepScrape={() => handleDeepScrape(ev)}
+                  isScraping={deepScrape.isScrapingUrl(ev.platform_url)}
+                  deepContacts={deepScrapeResults[ev.fingerprint]}
                 />
               ))}
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => { eventSearch.clearResults(); onOpenChange(false); }}>
+              <Button variant="outline" onClick={() => { eventSearch.clearResults(); setDeepScrapeResults({}); onOpenChange(false); }}>
                 Cancelar
               </Button>
               <Button
