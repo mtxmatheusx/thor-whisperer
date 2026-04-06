@@ -236,6 +236,12 @@ export default function EventsPage() {
                               <span className="text-[10px] font-medium">{event.qualification_score}</span>
                             </div>
                           )}
+                          {contactCounts[event.id] > 0 && (
+                            <div className="flex items-center gap-1 text-xs">
+                              <Contact className="h-3 w-3 text-emerald-600" />
+                              <span className="text-emerald-600 font-medium">{contactCounts[event.id]} contato(s)</span>
+                            </div>
+                          )}
                           <div className="flex flex-wrap gap-1">
                             {event.themes.slice(0, 3).map(t => (
                               <Badge key={t} variant="outline" className="text-[10px] px-1.5 py-0">
