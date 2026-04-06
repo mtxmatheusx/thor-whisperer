@@ -18,6 +18,22 @@ export function useEvents() {
     },
   });
 
+  // Fetch contact counts for all events
+  const { data: contactCounts = {} } = useQuery({
+    queryKey: ['event-contact-counts'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('event_contacts')
+        .select('event_id');
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const row of (data || [])) {
+        counts[row.event_id] = (counts[row.event_id] || 0) + 1;
+      }
+      return counts;
+    },
+  });
+
   const createEvent = useMutation({
     mutationFn: async (event: Partial<ProspectEvent>) => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -143,6 +159,7 @@ export function useEvents() {
 
   return {
     events,
+    contactCounts,
     isLoading,
     error,
     createEvent,

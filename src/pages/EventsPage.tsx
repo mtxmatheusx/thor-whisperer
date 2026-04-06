@@ -52,7 +52,7 @@ const THEME_LABELS: Record<string, string> = {
 };
 
 export default function EventsPage() {
-  const { events, isLoading, createEvent, updateEvent, deleteEvent, updatePipelineStatus, convertToLead } = useEvents();
+  const { events, contactCounts, isLoading, createEvent, updateEvent, deleteEvent, updatePipelineStatus, convertToLead } = useEvents();
   const eventSearch = useEventSearch();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -234,6 +234,12 @@ export default function EventsPage() {
                             <div className="flex items-center gap-2">
                               <Progress value={event.qualification_score} className="h-1.5 flex-1" />
                               <span className="text-[10px] font-medium">{event.qualification_score}</span>
+                            </div>
+                          )}
+                          {contactCounts[event.id] > 0 && (
+                            <div className="flex items-center gap-1 text-xs">
+                              <Contact className="h-3 w-3 text-emerald-600" />
+                              <span className="text-emerald-600 font-medium">{contactCounts[event.id]} contato(s)</span>
                             </div>
                           )}
                           <div className="flex flex-wrap gap-1">
@@ -619,7 +625,6 @@ function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
   const [locationInput, setLocationInput] = useState('');
   const [searchPlatforms, setSearchPlatforms] = useState<string[]>(['eventbrite', 'sympla']);
   const deepScrape = useDeepScrape();
-  const [deepScrapeResults, setDeepScrapeResults] = useState<Record<string, DeepScrapeContact[]>>({});
 
   const QUICK_KEYWORDS = [
     'liderança', 'gestão', 'RH', 'cultura organizacional',
@@ -632,7 +637,6 @@ function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
       .map(k => k.trim())
       .filter(Boolean);
     if (keywords.length === 0) return;
-    setDeepScrapeResults({});
     eventSearch.search.mutate({ keywords, platforms: searchPlatforms, location: locationInput || undefined });
   };
 
@@ -653,12 +657,12 @@ function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
     if (!ev.platform_url) return;
     const contacts = await deepScrape.scrapeEvent(ev.platform_url, ev.name);
     if (contacts && contacts.length > 0) {
-      setDeepScrapeResults(prev => ({ ...prev, [ev.fingerprint]: contacts }));
+      eventSearch.addDeepContacts(ev.fingerprint, contacts);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) { eventSearch.clearResults(); setDeepScrapeResults({}); } onOpenChange(v); }}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) { eventSearch.clearResults(); } onOpenChange(v); }}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -753,13 +757,13 @@ function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
                   onToggle={() => eventSearch.toggleSelect(ev.fingerprint)}
                   onDeepScrape={() => handleDeepScrape(ev)}
                   isScraping={deepScrape.isScrapingUrl(ev.platform_url)}
-                  deepContacts={deepScrapeResults[ev.fingerprint]}
+                  deepContacts={eventSearch.deepScrapeContacts[ev.fingerprint]}
                 />
               ))}
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => { eventSearch.clearResults(); setDeepScrapeResults({}); onOpenChange(false); }}>
+              <Button variant="outline" onClick={() => { eventSearch.clearResults(); onOpenChange(false); }}>
                 Cancelar
               </Button>
               <Button
