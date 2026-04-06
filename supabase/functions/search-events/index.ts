@@ -178,22 +178,26 @@ async function enrichEventsWithAI(events: RawEvent[]): Promise<RawEvent[]> {
   ).join("\n---\n");
 
   const today = new Date().toISOString().split("T")[0];
-  const prompt = `Analise os eventos abaixo extraídos de sites REAIS e retorne dados estruturados.
+  const prompt = `Analise os eventos abaixo extraídos de sites REAIS. O OBJETIVO é encontrar eventos e palestras corporativas onde uma PALESTRANTE especialista possa ser contratada.
+
+CONTEXTO: Estamos prospectando oportunidades para vender palestras. Precisamos de eventos que ACEITEM ou CONTRATEM palestrantes.
 
 IMPORTANTE:
-- Extraia APENAS informações que estão PRESENTES no conteúdo fornecido
+- Extraia APENAS informações PRESENTES no conteúdo fornecido
 - Se não encontrar uma informação, use null
 - Datas devem estar no formato YYYY-MM-DD
 - APENAS eventos FUTUROS (data >= ${today}). Se a data for anterior a hoje, retorne event_date como null
 - Emails e telefones devem ser extraídos do conteúdo real, NUNCA invente
+- Se o resultado NÃO for um evento/palestra/congresso/summit/workshop (ex: artigo, notícia, curso EAD), marque is_relevant como false
 
 ${eventSummaries}
 
 Para CADA evento, retorne um JSON com:
 {
   "index": 0,
-  "event_date": "2026-MM-DD ou null",
-  "event_end_date": "2026-MM-DD ou null",
+  "is_relevant": true,
+  "event_date": "YYYY-MM-DD ou null",
+  "event_end_date": "YYYY-MM-DD ou null",
   "location_city": "Cidade ou null",
   "location_state": "UF ou null",
   "location_venue": "Local ou null",
@@ -206,7 +210,8 @@ Para CADA evento, retorne um JSON com:
   "organizer_phone": "telefone ou null",
   "organizer_url": "site ou null",
   "organizer_linkedin": "url ou null",
-  "organizer_instagram": "url ou null"
+  "organizer_instagram": "url ou null",
+  "accepts_speakers": true
 }
 
 Retorne APENAS um JSON array válido. Sem markdown, sem explicação.`;
