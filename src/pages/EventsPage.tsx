@@ -791,11 +791,16 @@ function SearchEventsDialog({ open, onOpenChange, eventSearch }: {
 }
 
 // ─── Search Result Card ──────────────────────────────────────────────────────
-function SearchResultCard({ event, selected, onToggle }: {
+function SearchResultCard({ event, selected, onToggle, onDeepScrape, isScraping, deepContacts }: {
   event: SearchResult;
   selected: boolean;
   onToggle: () => void;
+  onDeepScrape?: () => void;
+  isScraping?: boolean;
+  deepContacts?: DeepScrapeContact[];
 }) {
+  const hasContact = event.organizer_email || event.organizer_phone || event.organizer_linkedin;
+
   return (
     <div
       className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
@@ -821,7 +826,7 @@ function SearchResultCard({ event, selected, onToggle }: {
           {(event.location_city || event.is_online) && (
             <span className="flex items-center gap-1">
               {event.is_online ? <Globe className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}
-              {event.is_online ? 'Online' : event.location_city}
+              {event.is_online ? 'Online' : `${event.location_city}${event.location_state ? `, ${event.location_state}` : ''}`}
             </span>
           )}
           {event.estimated_audience && (
@@ -830,6 +835,7 @@ function SearchResultCard({ event, selected, onToggle }: {
             </span>
           )}
         </div>
+
         {event.themes.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1.5">
             {event.themes.slice(0, 4).map(t => (
@@ -839,37 +845,81 @@ function SearchResultCard({ event, selected, onToggle }: {
             ))}
           </div>
         )}
-        {/* Contact Info */}
-        {(event.organizer_email || event.organizer_phone) && (
-          <div className="flex items-center gap-2 mt-2 p-1.5 rounded bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
+
+        {/* Contact Info from search */}
+        {hasContact && (
+          <div className="flex flex-wrap items-center gap-2 mt-2 p-2 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
             <Badge variant="outline" className="text-[10px] bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 gap-1">
               <Contact className="h-2.5 w-2.5" /> Contato
             </Badge>
             {event.organizer_name && (
-              <span className="text-xs font-medium text-foreground">{event.organizer_name}</span>
+              <span className="text-xs font-medium">{event.organizer_name}</span>
             )}
             {event.organizer_email && (
-              <a href={`mailto:${event.organizer_email}`} className="inline-flex items-center gap-0.5 text-xs text-blue-600 hover:underline" onClick={e => e.stopPropagation()}>
+              <a href={`mailto:${event.organizer_email}`} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline" onClick={e => e.stopPropagation()}>
                 <Mail className="h-3 w-3" /> {event.organizer_email}
               </a>
             )}
             {event.organizer_phone && (
-              <a href={`https://wa.me/${event.organizer_phone.replace(/\D/g, '')}`} className="inline-flex items-center gap-0.5 text-xs text-green-600 hover:underline" onClick={e => e.stopPropagation()}>
+              <a href={`https://wa.me/${event.organizer_phone.replace(/\D/g, '')}`} className="inline-flex items-center gap-1 text-xs text-green-600 hover:underline" onClick={e => e.stopPropagation()}>
                 <Phone className="h-3 w-3" /> {event.organizer_phone}
+              </a>
+            )}
+            {event.organizer_linkedin && (
+              <a href={event.organizer_linkedin} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-blue-700 hover:underline" onClick={e => e.stopPropagation()}>
+                <Linkedin className="h-3 w-3" /> LinkedIn
+              </a>
+            )}
+            {event.organizer_instagram && (
+              <a href={event.organizer_instagram} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-pink-600 hover:underline" onClick={e => e.stopPropagation()}>
+                <Instagram className="h-3 w-3" /> Instagram
               </a>
             )}
           </div>
         )}
-        {event.organizer_name && !event.organizer_email && !event.organizer_phone && (
-          <div className="flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground">
-            <Contact className="h-3 w-3" /> {event.organizer_name}
+
+        {/* Deep scrape contacts */}
+        {deepContacts && deepContacts.length > 0 && (
+          <div className="mt-2 p-2 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 space-y-1.5">
+            <Badge variant="outline" className="text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 gap-1">
+              <ScanSearch className="h-2.5 w-2.5" /> {deepContacts.length} contato(s) extraído(s)
+            </Badge>
+            {deepContacts.map((c, i) => (
+              <div key={i} className="flex flex-wrap items-center gap-2 text-xs">
+                {c.name && <span className="font-medium">{c.name}</span>}
+                {c.role && c.role !== 'organizer' && <span className="text-muted-foreground">({c.role})</span>}
+                {c.email && (
+                  <a href={`mailto:${c.email}`} className="inline-flex items-center gap-0.5 text-blue-600 hover:underline" onClick={e => e.stopPropagation()}>
+                    <Mail className="h-3 w-3" /> {c.email}
+                  </a>
+                )}
+                {c.phone && (
+                  <a href={`https://wa.me/${c.phone.replace(/\D/g, '')}`} className="inline-flex items-center gap-0.5 text-green-600 hover:underline" onClick={e => e.stopPropagation()}>
+                    <Phone className="h-3 w-3" /> {c.phone}
+                  </a>
+                )}
+                {c.linkedin && (
+                  <a href={c.linkedin} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-blue-700 hover:underline" onClick={e => e.stopPropagation()}>
+                    <Linkedin className="h-3 w-3" />
+                  </a>
+                )}
+                {c.instagram && (
+                  <a href={c.instagram} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-pink-600 hover:underline" onClick={e => e.stopPropagation()}>
+                    <Instagram className="h-3 w-3" />
+                  </a>
+                )}
+                <Badge variant="outline" className="text-[9px] py-0">{c.confidence}</Badge>
+              </div>
+            ))}
           </div>
         )}
+
         {event.description && (
           <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{event.description}</p>
         )}
       </div>
-      <div className="text-right shrink-0">
+
+      <div className="flex flex-col items-end gap-2 shrink-0">
         <div className="flex items-center gap-1">
           <Star className="h-3 w-3 text-yellow-500" />
           <span className={`text-sm font-bold ${
@@ -884,11 +934,23 @@ function SearchResultCard({ event, selected, onToggle }: {
             href={event.platform_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-blue-500 hover:underline mt-1 inline-flex items-center gap-0.5"
+            className="text-xs text-blue-500 hover:underline inline-flex items-center gap-0.5"
             onClick={e => e.stopPropagation()}
           >
             Ver <ExternalLink className="h-2.5 w-2.5" />
           </a>
+        )}
+        {onDeepScrape && event.platform_url && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-[10px] h-6 px-2 gap-1"
+            disabled={isScraping}
+            onClick={e => { e.stopPropagation(); onDeepScrape(); }}
+          >
+            {isScraping ? <Loader2 className="h-3 w-3 animate-spin" /> : <ScanSearch className="h-3 w-3" />}
+            {isScraping ? 'Buscando...' : 'Contatos'}
+          </Button>
         )}
       </div>
     </div>
