@@ -52,7 +52,7 @@ const THEME_LABELS: Record<string, string> = {
 };
 
 export default function EventsPage() {
-  const { events, isLoading, createEvent, updateEvent, deleteEvent, updatePipelineStatus, convertToLead } = useEvents();
+  const { events, contactCounts, isLoading, createEvent, updateEvent, deleteEvent, updatePipelineStatus, convertToLead } = useEvents();
   const eventSearch = useEventSearch();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
