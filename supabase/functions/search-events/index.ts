@@ -379,7 +379,7 @@ serve(async (req) => {
   }
 
   try {
-    const { keywords, location } = await req.json();
+    const { keywords, location, periodDays } = await req.json();
 
     if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
       return new Response(
@@ -388,7 +388,8 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Searching real events for: ${keywords.join(", ")} in ${location || "Brasil"}`);
+    const maxDays = periodDays || 90;
+    console.log(`Searching real events for: ${keywords.join(", ")} in ${location || "Brasil"} (next ${maxDays} days)`);
 
     const rawEvents = await searchRealEvents(keywords, location);
 
