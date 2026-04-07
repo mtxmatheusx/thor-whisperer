@@ -14,6 +14,92 @@ export type Database = {
   }
   public: {
     Tables: {
+      business_prospects: {
+        Row: {
+          address: string | null
+          business_name: string
+          city: string | null
+          client_profile_id: string | null
+          confidence: string | null
+          created_at: string
+          email: string | null
+          google_maps_url: string | null
+          id: string
+          instagram: string | null
+          linkedin: string | null
+          notes: string | null
+          owner_name: string | null
+          phone: string | null
+          rating: number | null
+          review_count: number | null
+          segment: string
+          source: string | null
+          state: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          business_name: string
+          city?: string | null
+          client_profile_id?: string | null
+          confidence?: string | null
+          created_at?: string
+          email?: string | null
+          google_maps_url?: string | null
+          id?: string
+          instagram?: string | null
+          linkedin?: string | null
+          notes?: string | null
+          owner_name?: string | null
+          phone?: string | null
+          rating?: number | null
+          review_count?: number | null
+          segment?: string
+          source?: string | null
+          state?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          business_name?: string
+          city?: string | null
+          client_profile_id?: string | null
+          confidence?: string | null
+          created_at?: string
+          email?: string | null
+          google_maps_url?: string | null
+          id?: string
+          instagram?: string | null
+          linkedin?: string | null
+          notes?: string | null
+          owner_name?: string | null
+          phone?: string | null
+          rating?: number | null
+          review_count?: number | null
+          segment?: string
+          source?: string | null
+          state?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_prospects_client_profile_id_fkey"
+            columns: ["client_profile_id"]
+            isOneToOne: false
+            referencedRelation: "client_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_profiles: {
         Row: {
           active: boolean
