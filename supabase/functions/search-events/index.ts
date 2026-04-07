@@ -18,9 +18,9 @@ async function searchRealEvents(keywords: string[], location?: string): Promise<
 
   const locationHint = location || "Brasil";
   const allEvents: RawEvent[] = [];
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const nextYear = currentYear + 1;
+  const todayIso = getTodayIsoInSaoPaulo();
+  const referenceDate = referenceDateFromIso(todayIso);
+  const currentYear = referenceDate.getUTCFullYear();
 
   // Search queries focused on events/conferences seeking speakers/palestrantes
   const kw = keywords.join(" ");
@@ -171,13 +171,17 @@ function parseSearchResult(result: any): RawEvent | null {
 
 // ─── Use AI to extract structured data from scraped content ─────────────────
 async function enrichEventsWithAI(events: RawEvent[]): Promise<RawEvent[]> {
-  if (!LOVABLE_API_KEY) return events;
+  const today = getTodayIsoInSaoPaulo();
+  const referenceDate = referenceDateFromIso(today);
+
+  if (!LOVABLE_API_KEY) {
+    return events.map((event) => hydrateEventDates(event, referenceDate));
+  }
 
   const eventSummaries = events.map((ev, i) => 
     `[EVENTO ${i}]\nTítulo: ${ev.name}\nURL: ${ev.platform_url}\nConteúdo:\n${(ev.raw_markdown || ev.description || "").slice(0, 800)}\n`
   ).join("\n---\n");
 
-  const today = new Date().toISOString().split("T")[0];
   const prompt = `Analise os eventos abaixo extraídos de sites REAIS. O OBJETIVO é encontrar eventos e palestras corporativas onde uma PALESTRANTE especialista possa ser contratada.
 
 CONTEXTO: Estamos prospectando oportunidades para vender palestras. Precisamos de eventos que ACEITEM ou CONTRATEM palestrantes.
@@ -186,7 +190,10 @@ IMPORTANTE:
 - Extraia APENAS informações PRESENTES no conteúdo fornecido
 - Se não encontrar uma informação, use null
 - Datas devem estar no formato YYYY-MM-DD
-- APENAS eventos FUTUROS (data >= ${today}). Se a data for anterior a hoje, retorne event_date como null
+- Considere HOJE como ${today} no fuso America/Sao_Paulo
+- APENAS eventos FUTUROS com data de início >= ${today}. Se a data for anterior a hoje, retorne event_date como null e is_relevant como false
+- Se não encontrar uma data de início clara e futura no conteúdo, marque is_relevant como false
+- Se a data vier no formato DD/MM sem ano, só considere válida se ainda não tiver passado no ano atual; se já passou, trate como null
 - Emails e telefones devem ser extraídos do conteúdo real, NUNCA invente
 - Se o resultado NÃO for um evento/palestra/congresso/summit/workshop (ex: artigo, notícia, curso EAD), marque is_relevant como false
 
@@ -275,14 +282,169 @@ Retorne APENAS um JSON array válido. Sem markdown, sem explicação.`;
       }
     }
 
-    return events.filter((_, i) => !irrelevantIndices.has(i));
+    return events
+      .map((event) => hydrateEventDates(event, referenceDate))
+      .filter((_, i) => !irrelevantIndices.has(i));
   } catch (err) {
     console.error("AI enrichment error:", err);
-    return events;
+    return events.map((event) => hydrateEventDates(event, referenceDate));
   }
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+const BRAZIL_TIMEZONE = "America/Sao_Paulo";
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+const MONTH_NAME_TO_NUMBER: Record<string, number> = {
+  janeiro: 1,
+  fevereiro: 2,
+  março: 3,
+  marco: 3,
+  abril: 4,
+  maio: 5,
+  junho: 6,
+  julho: 7,
+  agosto: 8,
+  setembro: 9,
+  outubro: 10,
+  novembro: 11,
+  dezembro: 12,
+};
+
+function getTodayIsoInSaoPaulo(now = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: BRAZIL_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  if (!year || !month || !day) {
+    return now.toISOString().split("T")[0];
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
+function referenceDateFromIso(dateIso: string): Date {
+  return new Date(`${dateIso}T12:00:00.000Z`);
+}
+
+function buildIsoDate(year: number, month: number, day: number): string | null {
+  const candidate = new Date(Date.UTC(year, month - 1, day));
+  if (
+    candidate.getUTCFullYear() !== year ||
+    candidate.getUTCMonth() !== month - 1 ||
+    candidate.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function normalizeYear(yearText: string | undefined): number | null {
+  if (!yearText) return null;
+  const numericYear = Number.parseInt(yearText, 10);
+  if (Number.isNaN(numericYear)) return null;
+  return numericYear < 100 ? 2000 + numericYear : numericYear;
+}
+
+function inferUpcomingYear(month: number, day: number, referenceDate: Date): number | null {
+  const currentYear = referenceDate.getUTCFullYear();
+  const candidate = buildIsoDate(currentYear, month, day);
+  if (!candidate) return null;
+  const todayIso = referenceDate.toISOString().split("T")[0];
+  return candidate >= todayIso ? currentYear : null;
+}
+
+function toIsoFromParts(dayText: string, monthText: string, yearText: string | undefined, referenceDate: Date): string | null {
+  const day = Number.parseInt(dayText, 10);
+  const month = Number.parseInt(monthText, 10);
+  const year = normalizeYear(yearText) ?? inferUpcomingYear(month, day, referenceDate);
+  if (!year) return null;
+  return buildIsoDate(year, month, day);
+}
+
+function extractDateRangeFromText(text: string, referenceDate: Date): { startDate: string | null; endDate: string | null } {
+  if (!text) return { startDate: null, endDate: null };
+
+  const normalized = text.replace(/\s+/g, " ").trim();
+
+  const namedRange = normalized.match(/(\d{1,2})\s*(?:a|até|-|–|e)\s*(\d{1,2})\s+de\s+(janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)(?:\s+de\s+(\d{2,4}))?/i);
+  if (namedRange) {
+    const month = MONTH_NAME_TO_NUMBER[namedRange[3].toLowerCase()] ?? null;
+    if (month) {
+      const year = normalizeYear(namedRange[4]) ?? inferUpcomingYear(month, Number.parseInt(namedRange[1], 10), referenceDate);
+      if (year) {
+        return {
+          startDate: buildIsoDate(year, month, Number.parseInt(namedRange[1], 10)),
+          endDate: buildIsoDate(year, month, Number.parseInt(namedRange[2], 10)),
+        };
+      }
+    }
+  }
+
+  const numericRange = normalized.match(/(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?\s*(?:a|até|-|–)\s*(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?/i);
+  if (numericRange) {
+    const fallbackYear = numericRange[3] || numericRange[6];
+    return {
+      startDate: toIsoFromParts(numericRange[1], numericRange[2], numericRange[3] || fallbackYear, referenceDate),
+      endDate: toIsoFromParts(numericRange[4], numericRange[5], numericRange[6] || fallbackYear, referenceDate),
+    };
+  }
+
+  const namedSingle = normalized.match(/(\d{1,2})\s+de\s+(janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)(?:\s+de\s+(\d{2,4}))?/i);
+  if (namedSingle) {
+    const month = MONTH_NAME_TO_NUMBER[namedSingle[2].toLowerCase()] ?? null;
+    if (month) {
+      const year = normalizeYear(namedSingle[3]) ?? inferUpcomingYear(month, Number.parseInt(namedSingle[1], 10), referenceDate);
+      if (year) {
+        return {
+          startDate: buildIsoDate(year, month, Number.parseInt(namedSingle[1], 10)),
+          endDate: null,
+        };
+      }
+    }
+  }
+
+  const numericSingle = normalized.match(/(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?/);
+  if (numericSingle) {
+    return {
+      startDate: toIsoFromParts(numericSingle[1], numericSingle[2], numericSingle[3], referenceDate),
+      endDate: null,
+    };
+  }
+
+  return { startDate: null, endDate: null };
+}
+
+function normalizeExistingDate(value: string | null | undefined, referenceDate: Date): string | null {
+  if (!value) return null;
+
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.toLowerCase() === "null") return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+
+  return extractDateRangeFromText(trimmed, referenceDate).startDate;
+}
+
+function hydrateEventDates(event: RawEvent, referenceDate: Date): RawEvent {
+  const textForFallback = [event.raw_markdown, event.description, event.name]
+    .filter(Boolean)
+    .join("\n");
+  const extracted = extractDateRangeFromText(textForFallback, referenceDate);
+
+  return {
+    ...event,
+    event_date: normalizeExistingDate(event.event_date, referenceDate) ?? extracted.startDate,
+    event_end_date: normalizeExistingDate(event.event_end_date, referenceDate) ?? extracted.endDate,
+  };
+}
+
 function detectPlatform(url: string): string {
   const lower = url.toLowerCase();
   if (lower.includes("sympla.com")) return "sympla";
@@ -405,9 +567,9 @@ serve(async (req) => {
     const rawEvents = await searchRealEvents(keywords, location);
 
     // Qualify and build results
-    const today = new Date();
-    const todayStr = today.toISOString().split("T")[0];
-    const maxDate = new Date(today.getTime() + maxDays * 24 * 60 * 60 * 1000);
+    const todayStr = getTodayIsoInSaoPaulo();
+    const referenceDate = referenceDateFromIso(todayStr);
+    const maxDate = new Date(referenceDate.getTime() + maxDays * DAY_IN_MS);
     const maxDateStr = maxDate.toISOString().split("T")[0];
 
     const results: SearchResult[] = rawEvents
@@ -418,10 +580,7 @@ serve(async (req) => {
         return { ...cleanEvent, themes, qualification_score: score, fingerprint };
       })
       // Filter: only future events within the period
-      .filter((event) => {
-        if (!event.event_date) return true;
-        return event.event_date >= todayStr && event.event_date <= maxDateStr;
-      });
+      .filter((event) => Boolean(event.event_date) && event.event_date >= todayStr && event.event_date <= maxDateStr);
 
     results.sort((a, b) => b.qualification_score - a.qualification_score);
 
