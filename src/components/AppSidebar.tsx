@@ -21,6 +21,7 @@ const navItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
   { title: 'Leads', url: '/leads', icon: Users },
   { title: 'Eventos', url: '/events', icon: CalendarSearch },
+  { title: 'Clientes', url: '/clients', icon: Building2 },
   { title: 'Campanhas', url: '/campaigns', icon: Megaphone },
   { title: 'Propostas', url: '/proposals', icon: FileText },
   { title: 'Perfil Paula', url: '/profile', icon: UserCircle },
