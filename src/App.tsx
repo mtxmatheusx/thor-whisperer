@@ -18,6 +18,7 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import SettingsPage from "./pages/SettingsPage";
 import EventsPage from "./pages/EventsPage";
 import ClientProfilesPage from "./pages/ClientProfilesPage";
+import BusinessProspectingPage from "./pages/BusinessProspectingPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
