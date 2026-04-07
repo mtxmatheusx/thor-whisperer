@@ -580,7 +580,10 @@ serve(async (req) => {
         return { ...cleanEvent, themes, qualification_score: score, fingerprint };
       })
       // Filter: only future events within the period
-      .filter((event) => Boolean(event.event_date) && event.event_date >= todayStr && event.event_date <= maxDateStr);
+      .filter((event) => {
+        const eventDate = event.event_date;
+        return Boolean(eventDate) && eventDate >= todayStr && eventDate <= maxDateStr;
+      });
 
     results.sort((a, b) => b.qualification_score - a.qualification_score);
 
@@ -598,9 +601,10 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
     console.error("search-events error:", err);
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
