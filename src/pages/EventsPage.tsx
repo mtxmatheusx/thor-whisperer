@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useEvents, useEventContacts } from '@/hooks/useEvents';
 import { useEventSearch, SearchResult } from '@/hooks/useEventSearch';
 import { useDeepScrape, DeepScrapeContact } from '@/hooks/useDeepScrape';
+import { useClientProfiles } from '@/hooks/useClientProfiles';
 import {
   ProspectEvent, EventContact, EventPipelineStatus, EventPlatform,
   EVENT_PIPELINE_LABELS, EVENT_PIPELINE_COLORS, EVENT_PLATFORM_LABELS,
@@ -55,9 +56,11 @@ const THEME_LABELS: Record<string, string> = {
 export default function EventsPage() {
   const { events, contactCounts, isLoading, createEvent, updateEvent, deleteEvent, updatePipelineStatus, convertToLead } = useEvents();
   const eventSearch = useEventSearch();
+  const { activeProfiles } = useClientProfiles();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [platformFilter, setPlatformFilter] = useState<string>('all');
+  const [clientFilter, setClientFilter] = useState<string>('all');
   const [createOpen, setCreateOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [detailEvent, setDetailEvent] = useState<ProspectEvent | null>(null);
@@ -67,6 +70,10 @@ export default function EventsPage() {
     return events.filter(e => {
       if (statusFilter !== 'all' && e.pipeline_status !== statusFilter) return false;
       if (platformFilter !== 'all' && e.platform !== platformFilter) return false;
+      if (clientFilter !== 'all') {
+        if (clientFilter === 'none' && e.client_profile_id) return false;
+        if (clientFilter !== 'none' && e.client_profile_id !== clientFilter) return false;
+      }
       if (search) {
         const s = search.toLowerCase();
         return e.name.toLowerCase().includes(s) ||
@@ -75,7 +82,7 @@ export default function EventsPage() {
       }
       return true;
     });
-  }, [events, search, statusFilter, platformFilter]);
+  }, [events, search, statusFilter, platformFilter, clientFilter]);
 
   const stats = useMemo(() => {
     const total = events.length;
@@ -168,6 +175,18 @@ export default function EventsPage() {
             ))}
           </SelectContent>
         </Select>
+        {activeProfiles.length > 0 && (
+          <Select value={clientFilter} onValueChange={setClientFilter}>
+            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Cliente" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os clientes</SelectItem>
+              <SelectItem value="none">Sem cliente</SelectItem>
+              {activeProfiles.map(p => (
+                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Kanban Board */}

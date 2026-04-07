@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_profiles: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          industry: string | null
+          logo_url: string | null
+          name: string
+          segment: string
+          service_description: string | null
+          target_audience: string
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          industry?: string | null
+          logo_url?: string | null
+          name: string
+          segment?: string
+          service_description?: string | null
+          target_audience?: string
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          industry?: string | null
+          logo_url?: string | null
+          name?: string
+          segment?: string
+          service_description?: string | null
+          target_audience?: string
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       discovery_runs: {
         Row: {
           completed_at: string | null
@@ -185,6 +230,7 @@ export type Database = {
         Row: {
           audience_type: string | null
           category: string | null
+          client_profile_id: string | null
           converted_lead_id: string | null
           created_at: string
           description: string | null
@@ -214,6 +260,7 @@ export type Database = {
         Insert: {
           audience_type?: string | null
           category?: string | null
+          client_profile_id?: string | null
           converted_lead_id?: string | null
           created_at?: string
           description?: string | null
@@ -243,6 +290,7 @@ export type Database = {
         Update: {
           audience_type?: string | null
           category?: string | null
+          client_profile_id?: string | null
           converted_lead_id?: string | null
           created_at?: string
           description?: string | null
@@ -270,6 +318,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "events_client_profile_id_fkey"
+            columns: ["client_profile_id"]
+            isOneToOne: false
+            referencedRelation: "client_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "events_discovery_run_id_fkey"
             columns: ["discovery_run_id"]
@@ -325,6 +380,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          client_profile_id: string | null
           company: string
           company_size: string | null
           created_at: string
@@ -349,6 +405,7 @@ export type Database = {
           value: number | null
         }
         Insert: {
+          client_profile_id?: string | null
           company: string
           company_size?: string | null
           created_at?: string
@@ -373,6 +430,7 @@ export type Database = {
           value?: number | null
         }
         Update: {
+          client_profile_id?: string | null
           company?: string
           company_size?: string | null
           created_at?: string
@@ -396,7 +454,15 @@ export type Database = {
           user_id?: string
           value?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "leads_client_profile_id_fkey"
+            columns: ["client_profile_id"]
+            isOneToOne: false
+            referencedRelation: "client_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

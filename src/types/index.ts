@@ -126,6 +126,7 @@ export interface ProspectEvent {
   id: string;
   user_id: string;
   discovery_run_id?: string;
+  client_profile_id?: string;
   name: string;
   description?: string;
   platform: EventPlatform;
