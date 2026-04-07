@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useEvents, useEventContacts } from '@/hooks/useEvents';
 import { useEventSearch, SearchResult } from '@/hooks/useEventSearch';
 import { useDeepScrape, DeepScrapeContact } from '@/hooks/useDeepScrape';
+import { useClientProfiles } from '@/hooks/useClientProfiles';
 import {
   ProspectEvent, EventContact, EventPipelineStatus, EventPlatform,
   EVENT_PIPELINE_LABELS, EVENT_PIPELINE_COLORS, EVENT_PLATFORM_LABELS,
