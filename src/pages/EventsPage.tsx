@@ -70,6 +70,10 @@ export default function EventsPage() {
     return events.filter(e => {
       if (statusFilter !== 'all' && e.pipeline_status !== statusFilter) return false;
       if (platformFilter !== 'all' && e.platform !== platformFilter) return false;
+      if (clientFilter !== 'all') {
+        if (clientFilter === 'none' && e.client_profile_id) return false;
+        if (clientFilter !== 'none' && e.client_profile_id !== clientFilter) return false;
+      }
       if (search) {
         const s = search.toLowerCase();
         return e.name.toLowerCase().includes(s) ||
@@ -78,7 +82,7 @@ export default function EventsPage() {
       }
       return true;
     });
-  }, [events, search, statusFilter, platformFilter]);
+  }, [events, search, statusFilter, platformFilter, clientFilter]);
 
   const stats = useMemo(() => {
     const total = events.length;
