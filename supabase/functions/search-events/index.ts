@@ -194,6 +194,8 @@ IMPORTANTE:
 - APENAS eventos FUTUROS com data de início >= ${today}. Se a data for anterior a hoje, retorne event_date como null e is_relevant como false
 - Se não encontrar uma data de início clara e futura no conteúdo, marque is_relevant como false
 - Se a data vier no formato DD/MM sem ano, só considere válida se ainda não tiver passado no ano atual; se já passou, trate como null
+- NUNCA use a data atual, data de rastreamento, data de publicação da página ou data do rodapé como event_date, a menos que o texto diga explicitamente que é a data do evento
+- Priorize datas próximas a termos como "dia", "dias", "data", "acontece", "evento", "congresso", "summit", "seminário", "fórum" ou "workshop"
 - Emails e telefones devem ser extraídos do conteúdo real, NUNCA invente
 - Se o resultado NÃO for um evento/palestra/congresso/summit/workshop (ex: artigo, notícia, curso EAD), marque is_relevant como false
 
@@ -369,54 +371,66 @@ function toIsoFromParts(dayText: string, monthText: string, yearText: string | u
   return buildIsoDate(year, month, day);
 }
 
-function extractDateRangeFromText(text: string, referenceDate: Date): { startDate: string | null; endDate: string | null } {
+function getDateCandidateTexts(text: string): string[] {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) return [];
+
+  const contextualMatches = normalized.match(/[^.!?\n]{0,60}(?:dia|dias|data|acontece|acontecera|acontecerá|evento|congresso|summit|semin[aá]rio|f[oó]rum|workshop|palestra|presencial|online)[^.!?\n]{0,140}/gi) ?? [];
+  return contextualMatches.length > 0 ? contextualMatches : [normalized];
+}
+
+function extractDateRangeFromText(text: string, referenceDate: Date, requireContext = false): { startDate: string | null; endDate: string | null } {
   if (!text) return { startDate: null, endDate: null };
 
-  const normalized = text.replace(/\s+/g, " ").trim();
+  const candidateTexts = requireContext ? getDateCandidateTexts(text) : [text.replace(/\s+/g, " ").trim()];
 
-  const namedRange = normalized.match(/(\d{1,2})\s*(?:a|até|-|–|e)\s*(\d{1,2})\s+de\s+(janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)(?:\s+de\s+(\d{2,4}))?/i);
-  if (namedRange) {
-    const month = MONTH_NAME_TO_NUMBER[namedRange[3].toLowerCase()] ?? null;
-    if (month) {
-      const year = normalizeYear(namedRange[4]) ?? inferUpcomingYear(month, Number.parseInt(namedRange[1], 10), referenceDate);
-      if (year) {
-        return {
-          startDate: buildIsoDate(year, month, Number.parseInt(namedRange[1], 10)),
-          endDate: buildIsoDate(year, month, Number.parseInt(namedRange[2], 10)),
-        };
+  for (const normalized of candidateTexts) {
+    if (!normalized) continue;
+
+    const namedRange = normalized.match(/(\d{1,2})\s*(?:a|até|-|–|e)\s*(\d{1,2})\s+de\s+(janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)(?:\s+de\s+(\d{2,4}))?/i);
+    if (namedRange) {
+      const month = MONTH_NAME_TO_NUMBER[namedRange[3].toLowerCase()] ?? null;
+      if (month) {
+        const year = normalizeYear(namedRange[4]) ?? inferUpcomingYear(month, Number.parseInt(namedRange[1], 10), referenceDate);
+        if (year) {
+          return {
+            startDate: buildIsoDate(year, month, Number.parseInt(namedRange[1], 10)),
+            endDate: buildIsoDate(year, month, Number.parseInt(namedRange[2], 10)),
+          };
+        }
       }
     }
-  }
 
-  const numericRange = normalized.match(/(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?\s*(?:a|até|-|–)\s*(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?/i);
-  if (numericRange) {
-    const fallbackYear = numericRange[3] || numericRange[6];
-    return {
-      startDate: toIsoFromParts(numericRange[1], numericRange[2], numericRange[3] || fallbackYear, referenceDate),
-      endDate: toIsoFromParts(numericRange[4], numericRange[5], numericRange[6] || fallbackYear, referenceDate),
-    };
-  }
+    const numericRange = normalized.match(/(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?\s*(?:a|até|-|–)\s*(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?/i);
+    if (numericRange) {
+      const fallbackYear = numericRange[3] || numericRange[6];
+      return {
+        startDate: toIsoFromParts(numericRange[1], numericRange[2], numericRange[3] || fallbackYear, referenceDate),
+        endDate: toIsoFromParts(numericRange[4], numericRange[5], numericRange[6] || fallbackYear, referenceDate),
+      };
+    }
 
-  const namedSingle = normalized.match(/(\d{1,2})\s+de\s+(janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)(?:\s+de\s+(\d{2,4}))?/i);
-  if (namedSingle) {
-    const month = MONTH_NAME_TO_NUMBER[namedSingle[2].toLowerCase()] ?? null;
-    if (month) {
-      const year = normalizeYear(namedSingle[3]) ?? inferUpcomingYear(month, Number.parseInt(namedSingle[1], 10), referenceDate);
-      if (year) {
-        return {
-          startDate: buildIsoDate(year, month, Number.parseInt(namedSingle[1], 10)),
-          endDate: null,
-        };
+    const namedSingle = normalized.match(/(\d{1,2})\s+de\s+(janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)(?:\s+de\s+(\d{2,4}))?/i);
+    if (namedSingle) {
+      const month = MONTH_NAME_TO_NUMBER[namedSingle[2].toLowerCase()] ?? null;
+      if (month) {
+        const year = normalizeYear(namedSingle[3]) ?? inferUpcomingYear(month, Number.parseInt(namedSingle[1], 10), referenceDate);
+        if (year) {
+          return {
+            startDate: buildIsoDate(year, month, Number.parseInt(namedSingle[1], 10)),
+            endDate: null,
+          };
+        }
       }
     }
-  }
 
-  const numericSingle = normalized.match(/(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?/);
-  if (numericSingle) {
-    return {
-      startDate: toIsoFromParts(numericSingle[1], numericSingle[2], numericSingle[3], referenceDate),
-      endDate: null,
-    };
+    const numericSingle = normalized.match(/(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?/);
+    if (numericSingle) {
+      return {
+        startDate: toIsoFromParts(numericSingle[1], numericSingle[2], numericSingle[3], referenceDate),
+        endDate: null,
+      };
+    }
   }
 
   return { startDate: null, endDate: null };
@@ -433,15 +447,26 @@ function normalizeExistingDate(value: string | null | undefined, referenceDate: 
 }
 
 function hydrateEventDates(event: RawEvent, referenceDate: Date): RawEvent {
-  const textForFallback = [event.raw_markdown, event.description, event.name]
+  const todayIso = referenceDate.toISOString().split("T")[0];
+  const summaryText = [event.name, event.description]
     .filter(Boolean)
     .join("\n");
-  const extracted = extractDateRangeFromText(textForFallback, referenceDate);
+  const extractedFromSummary = extractDateRangeFromText(summaryText, referenceDate, true);
+  const extractedFromPage = extractedFromSummary.startDate
+    ? { startDate: null, endDate: null }
+    : extractDateRangeFromText(event.raw_markdown || "", referenceDate, true);
+
+  const extractedStartDate = extractedFromSummary.startDate ?? extractedFromPage.startDate;
+  const extractedEndDate = extractedFromSummary.endDate ?? extractedFromPage.endDate;
+  const normalizedStartDate = normalizeExistingDate(event.event_date, referenceDate);
+  const normalizedEndDate = normalizeExistingDate(event.event_end_date, referenceDate);
+  const resolvedStartDate = extractedStartDate ?? (normalizedStartDate && normalizedStartDate !== todayIso ? normalizedStartDate : null);
+  const resolvedEndDate = extractedEndDate ?? (normalizedEndDate && normalizedEndDate !== todayIso ? normalizedEndDate : null);
 
   return {
     ...event,
-    event_date: normalizeExistingDate(event.event_date, referenceDate) ?? extracted.startDate,
-    event_end_date: normalizeExistingDate(event.event_end_date, referenceDate) ?? extracted.endDate,
+    event_date: resolvedStartDate,
+    event_end_date: resolvedEndDate,
   };
 }
 
