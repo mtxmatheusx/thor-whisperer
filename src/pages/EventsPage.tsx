@@ -56,9 +56,11 @@ const THEME_LABELS: Record<string, string> = {
 export default function EventsPage() {
   const { events, contactCounts, isLoading, createEvent, updateEvent, deleteEvent, updatePipelineStatus, convertToLead } = useEvents();
   const eventSearch = useEventSearch();
+  const { activeProfiles } = useClientProfiles();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [platformFilter, setPlatformFilter] = useState<string>('all');
+  const [clientFilter, setClientFilter] = useState<string>('all');
   const [createOpen, setCreateOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [detailEvent, setDetailEvent] = useState<ProspectEvent | null>(null);
