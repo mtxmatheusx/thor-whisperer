@@ -582,7 +582,8 @@ serve(async (req) => {
       // Filter: only future events within the period
       .filter((event) => {
         const eventDate = event.event_date;
-        return Boolean(eventDate) && eventDate >= todayStr && eventDate <= maxDateStr;
+        if (!eventDate) return false;
+        return eventDate >= todayStr && eventDate <= maxDateStr;
       });
 
     results.sort((a, b) => b.qualification_score - a.qualification_score);
