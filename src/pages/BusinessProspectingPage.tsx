@@ -156,7 +156,7 @@ export default function BusinessProspectingPage() {
               key={prospect.id}
               prospect={prospect}
               onDelete={() => deleteProspect.mutate(prospect.id)}
-              onStatusChange={(status) => updateProspect.mutate({ id: prospect.id, status })}
+              onStatusChange={(status) => updateProspect.mutate({ id: prospect.id, status: status as BusinessProspect['status'] })}
             />
           ))}
         </div>
